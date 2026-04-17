@@ -40,11 +40,19 @@ def cached_load(folder: str):
 
 plates: dict[str, tuple] = {}
 if folder1.strip():
-    with st.spinner("Lade Platte 1 …"):
-        plates["Platte 1"] = cached_load(folder1.strip())
+    try:
+        with st.spinner("Lade Platte 1 …"):
+            plates["Platte 1"] = cached_load(folder1.strip())
+    except Exception as exc:
+        st.error(f"Platte 1 konnte nicht geladen werden: {exc}")
+        st.stop()
 if folder2.strip():
-    with st.spinner("Lade Platte 2 …"):
-        plates["Platte 2"] = cached_load(folder2.strip())
+    try:
+        with st.spinner("Lade Platte 2 …"):
+            plates["Platte 2"] = cached_load(folder2.strip())
+    except Exception as exc:
+        st.error(f"Platte 2 konnte nicht geladen werden: {exc}")
+        st.stop()
 
 if not plates:
     st.info("Bitte mindestens einen Ordnerpfad eingeben.")
@@ -66,7 +74,7 @@ z_min = min(all_values) if all_values else 0.0
 z_max = max(all_values) if all_values else 1.0
 
 
-def make_heatmap(grid: np.ndarray, title: str, use_shared: bool) -> go.Figure:
+def make_heatmap(grid: np.ndarray, title: str, use_shared: bool, normalized: bool) -> go.Figure:
     nrows, ncols = grid.shape
     fig = go.Figure(
         go.Heatmap(
@@ -76,8 +84,7 @@ def make_heatmap(grid: np.ndarray, title: str, use_shared: bool) -> go.Figure:
             colorscale="Viridis",
             zmin=z_min if use_shared else None,
             zmax=z_max if use_shared else None,
-            colorbar=dict(title="g RMS" if not normalize else "Normalisiert"),
-            hoverongaps=False,
+            colorbar=dict(title="Normalisiert" if normalized else "g RMS"),
         )
     )
     fig.update_layout(
@@ -100,7 +107,7 @@ for col, name in zip(cols, plate_names):
         if ref_val is not None:
             label = "Normalisiert (Ref = 1.0)" if normalize else f"{ref_val:.4f} g RMS"
             st.metric(f"{name} — Referenz", label)
-        fig = make_heatmap(grids[name], name, shared_scale)
+        fig = make_heatmap(grids[name], name, shared_scale, normalize)
         event = st.plotly_chart(fig, on_select="rerun", key=f"heatmap_{name}", use_container_width=True)
         clicked = None
         if event and event["selection"] and event["selection"]["points"]:
@@ -158,7 +165,7 @@ for name, (hole_data, ref_df) in plates.items():
         rms_abs = compute_band_rms(df, f_min, f_max, axis)
         rms_norm = (
             rms_abs / ref_rms_csv
-            if (ref_rms_csv and ref_rms_csv > 0 and not math.isnan(rms_abs))
+            if (ref_rms_csv is not None and not math.isnan(ref_rms_csv) and ref_rms_csv > 0 and not math.isnan(rms_abs))
             else ""
         )
         rows.append({
