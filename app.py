@@ -5,7 +5,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from data_loader import load_plate
-from processing import build_grid, compute_band_rms
+from processing import build_grid, compute_band_rms, interpolate_grid
 
 st.set_page_config(page_title="Beschleunigungsverteilung", layout="wide")
 st.title("Beschleunigungsverteilung — Plattenanalyse")
@@ -73,6 +73,11 @@ for name, (hole_data, ref_df) in plates.items():
         if not math.isnan(val):
             ref_rms_values[name] = val
 
+# --- Interpolate grids ---
+interp_grids: dict[str, np.ndarray] = {
+    name: interpolate_grid(g) for name, g in grids.items()
+}
+
 # --- Shared colour scale ---
 all_values = [v for g in grids.values() for v in g.flatten() if not np.isnan(v)]
 z_min = min(all_values) if all_values else 0.0
@@ -135,7 +140,29 @@ for col, name in zip(cols, plate_names):
         if ref_val is not None:
             label = "Normalisiert (Ref = 1.0)" if normalize else f"{ref_val:.4f} g RMS"
             st.metric(f"{name} — Referenz", label)
-        fig = make_heatmap(grids[name], name, shared_scale, normalize)
+
+        hole_data_plate, _ = plates[name]
+        sparse_grid = grids[name]
+        positions = list(hole_data_plate.keys())  # [(x_bohrung, y_bohrung), ...]
+        values = [
+            float(sparse_grid[x - 1, y - 1])
+            for (x, y) in positions
+            if not np.isnan(sparse_grid[x - 1, y - 1])
+        ]
+        positions_valid = [
+            (x, y) for (x, y) in positions
+            if not np.isnan(sparse_grid[x - 1, y - 1])
+        ]
+
+        fig = make_heatmap(
+            interp_grids[name],
+            name,
+            shared_scale,
+            normalize,
+            colorscale,
+            positions_valid,
+            values,
+        )
         event = st.plotly_chart(fig, on_select="rerun", key=f"heatmap_{name}", use_container_width=True)
         clicked = None
         if event and event["selection"] and event["selection"]["points"]:
