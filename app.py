@@ -31,6 +31,11 @@ with st.sidebar:
 
     shared_scale = st.checkbox("Gemeinsame Farbskala", value=True)
 
+    colorscale = st.selectbox(
+        "Farbskala",
+        ["Viridis", "Plasma", "Hot", "RdBu", "Cividis", "Turbo", "Inferno"],
+    )
+
 
 # --- Load plates ---
 @st.cache_data
@@ -74,20 +79,42 @@ z_min = min(all_values) if all_values else 0.0
 z_max = max(all_values) if all_values else 1.0
 
 
-def make_heatmap(grid: np.ndarray, title: str, use_shared: bool, normalized: bool) -> go.Figure:
+def make_heatmap(
+    grid: np.ndarray,
+    title: str,
+    use_shared: bool,
+    normalized: bool,
+    colorscale: str,
+    hole_positions: list[tuple[int, int]],
+    hole_values: list[float],
+) -> go.Figure:
     nrows, ncols = grid.shape
     fig = go.Figure(
         go.Heatmap(
             z=grid,
             x=list(range(1, ncols + 1)),
             y=list(range(1, nrows + 1)),
-            colorscale="Viridis",
+            colorscale=colorscale,
             zmin=z_min if use_shared else None,
             zmax=z_max if use_shared else None,
             colorbar=dict(title="Normalisiert" if normalized else "g RMS"),
             hoverongaps=False,
         )
     )
+    label = "Normalisiert" if normalized else "g RMS"
+    fig.add_trace(go.Scatter(
+        x=[y for (_, y) in hole_positions],
+        y=[x for (x, _) in hole_positions],
+        mode="markers",
+        marker=dict(
+            size=8,
+            color="rgba(255,255,255,0.4)",
+            line=dict(color="rgba(0,0,0,0.7)", width=1.5),
+        ),
+        customdata=hole_values,
+        hovertemplate=f"x=%{{y}}, y=%{{x}}<br>{label}=%{{customdata:.4f}}<extra></extra>",
+        showlegend=False,
+    ))
     fig.update_layout(
         title=title,
         xaxis_title="y-Bohrung",
