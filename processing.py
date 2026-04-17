@@ -1,6 +1,7 @@
 import math
 import numpy as np
 import pandas as pd
+from scipy.interpolate import griddata
 
 
 def compute_band_rms(df: pd.DataFrame, f_min: float, f_max: float, axis: str) -> float:
