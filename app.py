@@ -85,6 +85,7 @@ def make_heatmap(grid: np.ndarray, title: str, use_shared: bool, normalized: boo
             zmin=z_min if use_shared else None,
             zmax=z_max if use_shared else None,
             colorbar=dict(title="Normalisiert" if normalized else "g RMS"),
+            hoverongaps=False,
         )
     )
     fig.update_layout(
