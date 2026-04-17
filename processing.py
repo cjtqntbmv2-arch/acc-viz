@@ -9,6 +9,7 @@ def compute_band_rms(df: pd.DataFrame, f_min: float, f_max: float, axis: str) ->
     filtered = df.loc[mask, ["Frequenz_Hz", col]]
     if len(filtered) < 1:
         return math.nan
+    # PSD data is uniformly spaced; estimate delta_f from first two points
     delta_f = (
         float(filtered["Frequenz_Hz"].iloc[1] - filtered["Frequenz_Hz"].iloc[0])
         if len(filtered) > 1
