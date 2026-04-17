@@ -79,7 +79,7 @@ interp_grids: dict[str, np.ndarray] = {
 }
 
 # --- Shared colour scale ---
-all_values = [v for g in grids.values() for v in g.flatten() if not np.isnan(v)]
+all_values = [v for g in interp_grids.values() for v in g.flatten() if not np.isnan(v)]
 z_min = min(all_values) if all_values else 0.0
 z_max = max(all_values) if all_values else 1.0
 
@@ -108,8 +108,8 @@ def make_heatmap(
     )
     label = "Normalisiert" if normalized else "g RMS"
     fig.add_trace(go.Scatter(
-        x=[y for (_, y) in hole_positions],
-        y=[x for (x, _) in hole_positions],
+        x=[y for (_, y) in hole_positions],  # heatmap horizontal = y-Bohrung
+        y=[x for (x, _) in hole_positions],  # heatmap vertical = x-Bohrung
         mode="markers",
         marker=dict(
             size=8,

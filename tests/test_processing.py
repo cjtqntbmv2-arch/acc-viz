@@ -1,7 +1,7 @@
 import math
 import numpy as np
 import pandas as pd
-from processing import compute_band_rms, build_grid
+from processing import compute_band_rms, build_grid, interpolate_grid
 
 
 def make_df(freqs, psd_x, psd_y, psd_z):
@@ -89,8 +89,6 @@ def test_build_grid_empty_returns_nan_grid():
     assert grid.shape == (1, 1)
     assert math.isnan(grid[0, 0])
 
-
-from processing import interpolate_grid
 
 
 def test_interpolate_grid_fills_interior():
