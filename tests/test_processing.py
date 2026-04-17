@@ -88,3 +88,57 @@ def test_build_grid_empty_returns_nan_grid():
     grid = build_grid({}, None, 0.0, 2.0, "X", normalize=False)
     assert grid.shape == (1, 1)
     assert math.isnan(grid[0, 0])
+
+
+from processing import interpolate_grid
+
+
+def test_interpolate_grid_fills_interior():
+    # 3x3 Grid: Werte an allen 4 Ecken, Mitte und Kanten fehlen
+    # Linear interpoliert: Zentrum (1,1) soll ~2.0 sein (Mittel der Ecken)
+    grid = np.array([
+        [1.0, np.nan, 3.0],
+        [np.nan, np.nan, np.nan],
+        [1.0, np.nan, 3.0],
+    ])
+    result = interpolate_grid(grid)
+    assert not np.isnan(result[1, 1])
+    assert np.isclose(result[1, 1], 2.0, atol=0.1)
+
+
+def test_interpolate_grid_preserves_known_values():
+    grid = np.array([
+        [1.0, np.nan, 3.0],
+        [np.nan, np.nan, np.nan],
+        [1.0, np.nan, 3.0],
+    ])
+    result = interpolate_grid(grid)
+    assert np.isclose(result[0, 0], 1.0)
+    assert np.isclose(result[0, 2], 3.0)
+
+
+def test_interpolate_grid_outside_convex_hull_is_nan():
+    # Nur 3 Punkte im Zentrum — Ecken liegen außerhalb der konvexen Hülle
+    grid = np.full((5, 5), np.nan)
+    grid[2, 1] = 1.0
+    grid[2, 3] = 2.0
+    grid[3, 2] = 3.0
+    result = interpolate_grid(grid)
+    assert np.isnan(result[0, 0])
+    assert np.isnan(result[4, 4])
+
+
+def test_interpolate_grid_too_few_points_returns_copy():
+    # Weniger als 3 Messpunkte: keine Interpolation möglich, Grid unverändert zurück
+    grid = np.full((3, 3), np.nan)
+    grid[1, 1] = 5.0
+    result = interpolate_grid(grid)
+    assert np.isclose(result[1, 1], 5.0)
+    assert np.isnan(result[0, 0])
+
+
+def test_interpolate_grid_no_nan_unchanged():
+    # Vollständig befülltes Grid bleibt unverändert
+    grid = np.array([[1.0, 2.0], [3.0, 4.0]])
+    result = interpolate_grid(grid)
+    assert np.allclose(result, grid)

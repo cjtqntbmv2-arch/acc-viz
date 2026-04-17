@@ -44,3 +44,17 @@ def build_grid(
             grid[x - 1, y - 1] = rms
 
     return grid
+
+
+def interpolate_grid(grid: np.ndarray) -> np.ndarray:
+    known_mask = ~np.isnan(grid)
+    if known_mask.sum() < 3:
+        return grid.copy()
+
+    nrows, ncols = grid.shape
+    rows, cols = np.mgrid[0:nrows, 0:ncols]
+
+    points = np.column_stack([rows[known_mask], cols[known_mask]])
+    values = grid[known_mask]
+
+    return griddata(points, values, (rows, cols), method="linear")
