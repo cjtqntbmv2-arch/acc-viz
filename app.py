@@ -143,16 +143,13 @@ for col, name in zip(cols, plate_names):
 
         hole_data_plate, _ = plates[name]
         sparse_grid = grids[name]
-        positions = list(hole_data_plate.keys())  # [(x_bohrung, y_bohrung), ...]
-        values = [
-            float(sparse_grid[x - 1, y - 1])
-            for (x, y) in positions
-            if not np.isnan(sparse_grid[x - 1, y - 1])
-        ]
-        positions_valid = [
-            (x, y) for (x, y) in positions
-            if not np.isnan(sparse_grid[x - 1, y - 1])
-        ]
+        positions_valid = []
+        values = []
+        for (x, y) in hole_data_plate.keys():
+            val = float(sparse_grid[x - 1, y - 1])
+            if not np.isnan(val):
+                positions_valid.append((x, y))
+                values.append(val)
 
         fig = make_heatmap(
             interp_grids[name],
