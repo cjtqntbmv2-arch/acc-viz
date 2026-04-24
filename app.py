@@ -1,11 +1,58 @@
 import math
+import platform
+import subprocess
+import sys
+
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-from data_loader import load_plate
-from processing import build_grid, compute_band_rms, interpolate_grid
+from src.io.plate_loader import load_plate, LoadResult
+from src.analysis.grid import build_grid
+from src.analysis.rms import compute_band_rms
+from src.analysis.interpolation import interpolate_grid
+
+
+def pick_folder() -> str | None:
+    if platform.system() == "Darwin":
+        applescript = (
+            'tell application "System Events" to activate\n'
+            'set chosenFolder to choose folder with prompt "Ordner wählen"\n'
+            'POSIX path of chosenFolder'
+        )
+        try:
+            result = subprocess.run(
+                ["osascript", "-e", applescript],
+                capture_output=True,
+                text=True,
+                timeout=300,
+            )
+        except subprocess.TimeoutExpired:
+            return None
+        if result.returncode != 0:
+            return None
+        path = result.stdout.strip().rstrip("/")
+        return path or None
+
+    script = (
+        "import tkinter as tk;"
+        "from tkinter import filedialog;"
+        "r=tk.Tk();r.withdraw();r.attributes('-topmost',True);"
+        "p=filedialog.askdirectory(parent=r);"
+        "print(p)"
+    )
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", script],
+            capture_output=True,
+            text=True,
+            timeout=300,
+        )
+    except subprocess.TimeoutExpired:
+        return None
+    path = result.stdout.strip()
+    return path or None
 
 st.set_page_config(page_title="Beschleunigungsverteilung", layout="wide")
 st.title("Beschleunigungsverteilung — Plattenanalyse")
@@ -14,8 +61,34 @@ st.title("Beschleunigungsverteilung — Plattenanalyse")
 with st.sidebar:
     st.header("Einstellungen")
 
-    folder1 = st.text_input("Platte 1 — Ordnerpfad", value="")
-    folder2 = st.text_input("Platte 2 — Ordnerpfad (optional)", value="")
+    if "folder1" not in st.session_state:
+        st.session_state.folder1 = ""
+    if "folder2" not in st.session_state:
+        st.session_state.folder2 = ""
+
+    c1a, c1b = st.columns([3, 1])
+    with c1b:
+        st.write("")
+        st.write("")
+        if st.button("📁", key="pick1", help="Ordner wählen"):
+            p = pick_folder()
+            if p:
+                st.session_state.folder1 = p
+                st.rerun()
+    with c1a:
+        folder1 = st.text_input("Platte 1 — Ordnerpfad", key="folder1")
+
+    c2a, c2b = st.columns([3, 1])
+    with c2b:
+        st.write("")
+        st.write("")
+        if st.button("📁", key="pick2", help="Ordner wählen"):
+            p = pick_folder()
+            if p:
+                st.session_state.folder2 = p
+                st.rerun()
+    with c2a:
+        folder2 = st.text_input("Platte 2 — Ordnerpfad (optional)", key="folder2")
 
     f_min, f_max = st.slider(
         "Frequenzband (Hz)",
@@ -47,14 +120,20 @@ plates: dict[str, tuple] = {}
 if folder1.strip():
     try:
         with st.spinner("Lade Platte 1 …"):
-            plates["Platte 1"] = cached_load(folder1.strip())
+            result = cached_load(folder1.strip())
+            plates["Platte 1"] = (result.hole_data, result.ref_df)
+            for w in result.warnings:
+                st.warning(f"Platte 1: {w}")
     except Exception as exc:
         st.error(f"Platte 1 konnte nicht geladen werden: {exc}")
         st.stop()
 if folder2.strip():
     try:
         with st.spinner("Lade Platte 2 …"):
-            plates["Platte 2"] = cached_load(folder2.strip())
+            result = cached_load(folder2.strip())
+            plates["Platte 2"] = (result.hole_data, result.ref_df)
+            for w in result.warnings:
+                st.warning(f"Platte 2: {w}")
     except Exception as exc:
         st.error(f"Platte 2 konnte nicht geladen werden: {exc}")
         st.stop()
@@ -74,8 +153,15 @@ for name, (hole_data, ref_df) in plates.items():
             ref_rms_values[name] = val
 
 # --- Interpolate grids ---
+def _ref_for_interp(name: str) -> float | None:
+    val = ref_rms_values.get(name)
+    if val is None:
+        return None
+    return 1.0 if normalize else val
+
+
 interp_grids: dict[str, np.ndarray] = {
-    name: interpolate_grid(g) for name, g in grids.items()
+    name: interpolate_grid(g, _ref_for_interp(name)) for name, g in grids.items()
 }
 
 # --- Shared colour scale ---
@@ -92,24 +178,26 @@ def make_heatmap(
     colorscale: str,
     hole_positions: list[tuple[int, int]],
     hole_values: list[float],
+    ref_value: float | None,
 ) -> go.Figure:
     nrows, ncols = grid.shape
     fig = go.Figure(
         go.Heatmap(
-            z=grid,
-            x=list(range(1, ncols + 1)),
-            y=list(range(1, nrows + 1)),
+            z=grid.T,
+            x=list(range(1, nrows + 1)),
+            y=list(range(1, ncols + 1)),
             colorscale=colorscale,
             zmin=z_min if use_shared else None,
             zmax=z_max if use_shared else None,
             colorbar=dict(title="Normalisiert" if normalized else "g RMS"),
             hoverongaps=False,
+            hovertemplate=f"x=%{{x}}, y=%{{y}}<br>Interpoliert ({'Normalisiert' if normalized else 'g RMS'})=%{{z:.4f}}<extra></extra>",
         )
     )
     label = "Normalisiert" if normalized else "g RMS"
     fig.add_trace(go.Scatter(
-        x=[y for (_, y) in hole_positions],  # heatmap horizontal = y-Bohrung
-        y=[x for (x, _) in hole_positions],  # heatmap vertical = x-Bohrung
+        x=[x for (x, _) in hole_positions],
+        y=[y for (_, y) in hole_positions],
         mode="markers",
         marker=dict(
             size=8,
@@ -117,15 +205,35 @@ def make_heatmap(
             line=dict(color="rgba(0,0,0,0.7)", width=1.5),
         ),
         customdata=hole_values,
-        hovertemplate=f"x=%{{y}}, y=%{{x}}<br>{label}=%{{customdata:.4f}}<extra></extra>",
+        hovertemplate=f"x=%{{x}}, y=%{{y}}<br>{label}=%{{customdata:.4f}}<extra></extra>",
         showlegend=False,
     ))
+    if ref_value is not None:
+        x_center = (nrows + 1) / 2
+        y_center = (ncols + 1) / 2
+        fig.add_trace(go.Scatter(
+            x=[x_center],
+            y=[y_center],
+            mode="markers",
+            marker=dict(
+                size=14,
+                symbol="star",
+                color="rgba(255,255,0,0.9)",
+                line=dict(color="black", width=1.5),
+            ),
+            customdata=[ref_value],
+            hovertemplate=f"Referenz (Mitte)<br>{label}=%{{customdata:.4f}}<extra></extra>",
+            showlegend=False,
+        ))
+
     fig.update_layout(
         title=title,
-        xaxis_title="y-Bohrung",
-        yaxis_title="x-Bohrung",
-        height=500,
+        xaxis_title="x-Bohrung",
+        yaxis_title="y-Bohrung",
+        height=600,
     )
+    fig.update_yaxes(scaleanchor="x", scaleratio=1, constrain="domain", autorange="reversed")
+    fig.update_xaxes(constrain="domain")
     return fig
 
 
@@ -151,6 +259,11 @@ for col, name in zip(cols, plate_names):
                 positions_valid.append((x, y))
                 values.append(val)
 
+        if ref_val is None:
+            ref_marker_value = None
+        else:
+            ref_marker_value = 1.0 if normalize else ref_val
+
         fig = make_heatmap(
             interp_grids[name],
             name,
@@ -159,12 +272,13 @@ for col, name in zip(cols, plate_names):
             colorscale,
             positions_valid,
             values,
+            ref_marker_value,
         )
         event = st.plotly_chart(fig, on_select="rerun", key=f"heatmap_{name}", use_container_width=True)
         clicked = None
         if event and event["selection"] and event["selection"]["points"]:
             pt = event["selection"]["points"][0]
-            clicked = (int(pt["y"]), int(pt["x"]))  # (x_hole, y_hole)
+            clicked = (int(pt["x"]), int(pt["y"]))  # (x_hole, y_hole)
         click_state[name] = clicked
 
 # --- Spectrum detail ---
