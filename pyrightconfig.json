@@ -1,0 +1,5 @@
+{
+  "extraPaths": ["."],
+  "include": ["src", "tests", "app.py", "packaging"],
+  "reportMissingImports": "warning"
+}
