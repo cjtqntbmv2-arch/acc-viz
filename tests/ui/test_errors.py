@@ -13,10 +13,13 @@ from src.ui.errors import format_error
 
 
 def test_format_invalid_folder_not_exists():
-    exc = InvalidPlateFolderError(path=Path("/x"), reason="not_exists")
+    path = Path("/x")
+    exc = InvalidPlateFolderError(path=path, reason="not_exists")
     msg = format_error(exc, plate_label="Platte 1")
     assert "Pfad existiert nicht" in msg
-    assert "/x" in msg
+    # Use platform-native string form so the test passes on Windows too
+    # where Path separators are backslashes rather than forward slashes.
+    assert str(path) in msg
 
 
 def test_format_invalid_folder_empty():
@@ -26,10 +29,11 @@ def test_format_invalid_folder_empty():
 
 
 def test_format_csv_read():
-    exc = CsvReadError(path=Path("/a.csv"), reason="encoding")
+    path = Path("/a.csv")
+    exc = CsvReadError(path=path, reason="encoding")
     msg = format_error(exc, plate_label="Platte 1")
     assert "Encoding" in msg or "gelesen werden" in msg
-    assert "/a.csv" in msg
+    assert str(path) in msg
 
 
 def test_format_csv_schema_includes_missing():

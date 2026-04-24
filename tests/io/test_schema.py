@@ -23,10 +23,13 @@ def test_exceptions_inherit_base():
 
 
 def test_invalid_folder_carries_context():
-    exc = InvalidPlateFolderError(path=Path("/tmp/x"), reason="not_exists")
-    assert exc.path == Path("/tmp/x")
+    path = Path("/tmp/x")
+    exc = InvalidPlateFolderError(path=path, reason="not_exists")
+    assert exc.path == path
     assert exc.reason == "not_exists"
-    assert "/tmp/x" in str(exc)
+    # Compare using the platform-native string form so the test is portable
+    # between POSIX ("/tmp/x") and Windows ("\\tmp\\x") path separators.
+    assert str(path) in str(exc)
 
 
 def test_csv_schema_error_lists_missing():
@@ -44,4 +47,4 @@ def test_csv_read_error_carries_path():
 def test_exceptions_populate_args_for_logging():
     exc = InvalidPlateFolderError(path=Path("/tmp/x"), reason="not_exists")
     assert exc.args
-    assert str(exc) in exc.args[0]
+    assert str(exc) == exc.args[0] or str(exc) in exc.args[0]
