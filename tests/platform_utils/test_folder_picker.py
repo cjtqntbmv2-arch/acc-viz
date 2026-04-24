@@ -48,3 +48,29 @@ def test_windows_empty_selection_returns_none(monkeypatch):
     monkeypatch.setitem(real_sys.modules, "tkinter.filedialog", mock_fd)
 
     assert folder_picker.pick_folder() is None
+
+
+def test_tkinter_timeout_returns_none(monkeypatch):
+    import sys as real_sys
+    monkeypatch.setattr(folder_picker.sys, "platform", "win32", raising=False)
+
+    class _StuckThread:
+        def __init__(self, *a, **kw):
+            pass
+
+        def start(self):
+            pass
+
+        def join(self, timeout=None):
+            return None
+
+        def is_alive(self):
+            return True
+
+    monkeypatch.setattr(folder_picker.threading, "Thread", _StuckThread)
+
+    fake = MagicMock()
+    monkeypatch.setitem(real_sys.modules, "tkinter", fake)
+    monkeypatch.setitem(real_sys.modules, "tkinter.filedialog", fake)
+
+    assert folder_picker.pick_folder() is None

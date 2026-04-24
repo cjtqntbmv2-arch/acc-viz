@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Load a plate folder of hole measurement CSVs plus an optional reference file."""
+
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -15,12 +17,31 @@ _REFERENCE_NAME = "referenz.csv"
 
 @dataclass
 class LoadResult:
+    """Container for the parsed contents of a plate folder."""
+
     hole_data: dict[tuple[int, int], pd.DataFrame]
     ref_df: pd.DataFrame | None
     warnings: list[str] = field(default_factory=list)
 
 
 def load_plate(folder: Path | str) -> LoadResult:
+    """Load every ``x{N}-y{M}.csv`` hole file and the optional ``Referenz.csv``.
+
+    File discovery is case-insensitive and limited to regular files directly
+    inside ``folder``. Files that do not match the hole or reference naming
+    conventions are ignored silently.
+
+    Args:
+        folder: Path to the plate folder.
+
+    Returns:
+        A :class:`LoadResult` with the parsed hole DataFrames, the reference
+        DataFrame (or ``None`` when missing), and any non-fatal warnings.
+
+    Raises:
+        InvalidPlateFolderError: If ``folder`` does not exist, is not a
+            directory, or contains no hole files.
+    """
     folder_path = Path(folder)
 
     if not folder_path.exists():

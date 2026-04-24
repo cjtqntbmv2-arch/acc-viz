@@ -39,8 +39,51 @@ SPECTRUM_X_LABEL = "Frequenz (Hz)"
 SPECTRUM_Y_LABEL_TMPL = "PSD {axis} (g²/Hz)"
 SPECTRUM_TRACE_HOLE = "Bohrung ({x}, {y})"
 SPECTRUM_TRACE_REF = "Referenz"
+SPECTRUM_Y_LABEL_RSS = "PSD (g²/Hz)"
+SPECTRUM_TRACE_SUM = "Summe X+Y+Z"
+SPECTRUM_TRACE_AXIS_TMPL = "PSD {axis}"
 
 HEATMAP_X_LABEL = "x-Bohrung"
 HEATMAP_Y_LABEL = "y-Bohrung"
 
 WARN_NO_DATA_FOR_HOLE = "{name}: Keine Messdaten für Bohrung ({x}, {y})."
+
+HELP_FOLDER_PLATE = (
+    "Ordner mit CSV-Messungen pro Bohrung: Dateinamen im Format "
+    "x{N}-y{M}.csv, Spalten: Frequenz_Hz, PSD_X_g2Hz, PSD_Y_g2Hz, "
+    "PSD_Z_g2Hz. Optional eine reference.csv für die Referenzmessung."
+)
+HELP_FREQUENCY_BAND = (
+    "Frequenzbereich, über den der Band-RMS integriert wird. "
+    "Beeinflusst Heatmap, Spektrum-Hervorhebung und CSV-Export."
+)
+HELP_AXIS = (
+    "X/Y/Z: Einzelachse. RSS = √(gRMS_X² + gRMS_Y² + gRMS_Z²) — "
+    "Root Sum of Squares der drei Achsen, nützlich für "
+    "richtungsunabhängige Gesamtbelastung."
+)
+HELP_NORMALIZE = (
+    "Teilt jeden Bohrungs-RMS durch den Referenz-RMS derselben Platte. "
+    "Ergebnis dimensionslos, Referenz = 1,0. Erfordert reference.csv."
+)
+HELP_SHARED_SCALE = (
+    "Wenn aktiv, nutzen alle Heatmaps denselben zmin/zmax-Bereich — "
+    "erleichtert den direkten Platten-Vergleich."
+)
+HELP_COLORSCALE = (
+    "Farbpalette der Heatmap. Viridis/Cividis sind perzeptuell "
+    "gleichmäßig (empfohlen), RdBu betont Abweichungen."
+)
+HELP_REF_METRIC = (
+    "RMS der Referenzmessung (reference.csv) im aktuellen "
+    "Frequenzband. Gelber Stern in der Heatmap markiert diese Stelle."
+)
+HELP_CSV_EXPORT = (
+    "Pro Bohrung eine Zeile: absoluter und normalisierter Band-RMS "
+    "für aktuell gewähltes Frequenzband und Achse. UTF-8 mit BOM, "
+    "Semikolon-getrennt (Excel-kompatibel)."
+)
+CAPTION_HEATMAP_LEGEND = (
+    "Weiße Kreise = gemessene Bohrungen (anklickbar für Spektrum). "
+    "Gelber Stern = Referenzwert in Plattenmitte."
+)

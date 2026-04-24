@@ -59,3 +59,10 @@ def test_reference_value_used_at_center():
     result = interpolate_grid(grid, ref_value=5.0)
     # Center should be pulled toward the reference value.
     assert result[1, 1] > 1.0
+
+
+def test_reference_skipped_when_center_is_known():
+    grid = np.full((3, 3), np.nan)
+    grid[1, 1] = 42.0  # center coincides with a real measurement
+    result = interpolate_grid(grid, ref_value=5.0)
+    assert np.isclose(result[1, 1], 42.0)

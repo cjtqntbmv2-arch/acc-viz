@@ -75,3 +75,32 @@ def test_too_few_rows_raises_content_error(tmp_path):
     write_csv(p, [(0.0, 1e-3, 2e-3, 3e-3)])  # only one data row
     with pytest.raises(CsvContentError):
         read_measurement_csv(p)
+
+
+def test_unknown_separator_raises_read_error(tmp_path):
+    p = tmp_path / "x1-y1.csv"
+    lines = ["# comment"] * 10 + [
+        "Frequenz_Hz|PSD_X_g2Hz|PSD_Y_g2Hz|PSD_Z_g2Hz",
+        "0.0|1e-3|2e-3|3e-3",
+        "1.0|1e-3|2e-3|3e-3",
+    ]
+    p.write_text("\n".join(lines) + "\n")
+    with pytest.raises(CsvReadError) as ei:
+        read_measurement_csv(p)
+    assert ei.value.reason == "separator"
+
+
+def test_binary_file_raises_encoding_error(tmp_path):
+    p = tmp_path / "x1-y1.csv"
+    p.write_bytes(b"header\x00binary\x00data\x00\x00")
+    with pytest.raises(CsvReadError) as ei:
+        read_measurement_csv(p)
+    assert ei.value.reason == "encoding"
+
+
+def test_no_header_marker_raises_parse_error(tmp_path):
+    p = tmp_path / "x1-y1.csv"
+    p.write_text("\n".join(f"# junk line {i}" for i in range(35)) + "\n")
+    with pytest.raises(CsvReadError) as ei:
+        read_measurement_csv(p)
+    assert ei.value.reason == "parse"

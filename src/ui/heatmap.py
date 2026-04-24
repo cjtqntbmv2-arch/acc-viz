@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Plotly heatmap figure construction for interpolated plate grids."""
+
 import numpy as np
 import plotly.graph_objects as go
 
@@ -21,6 +23,27 @@ def make_heatmap(
     ref_value: float | None,
     z_range: tuple[float, float] | None,
 ) -> go.Figure:
+    """Build a Plotly heatmap figure for the interpolated grid.
+
+    Overlays white hole markers at the measured positions and — when provided
+    — a yellow star at the geometric center representing the reference value.
+
+    Args:
+        grid: 2D array of interpolated values with shape ``(max_x, max_y)``.
+        title: Figure title.
+        colorscale: Plotly colorscale identifier (e.g. ``"Viridis"``).
+        normalized: If true, label the colorbar as normalized; otherwise as
+            absolute g RMS.
+        hole_positions: 1-indexed ``(x, y)`` positions for measured holes.
+        hole_values: Displayed values for the hole markers, aligned with
+            ``hole_positions``.
+        ref_value: Optional reference value rendered at the grid center.
+        z_range: Optional ``(zmin, zmax)`` color range; when ``None`` Plotly
+            auto-ranges.
+
+    Returns:
+        A :class:`plotly.graph_objects.Figure` ready to be rendered.
+    """
     nrows, ncols = grid.shape
     label = S.COLORBAR_NORMALIZED if normalized else S.COLORBAR_ABSOLUTE
 
@@ -72,6 +95,12 @@ def make_heatmap(
         yaxis_title=S.HEATMAP_Y_LABEL,
         height=HEATMAP_HEIGHT,
     )
-    fig.update_yaxes(scaleanchor="x", scaleratio=1, constrain="domain", autorange="reversed")
-    fig.update_xaxes(constrain="domain")
+    fig.update_yaxes(
+        scaleanchor="x",
+        scaleratio=1,
+        constrain="domain",
+        autorange="reversed",
+        dtick=1,
+    )
+    fig.update_xaxes(constrain="domain", dtick=1)
     return fig

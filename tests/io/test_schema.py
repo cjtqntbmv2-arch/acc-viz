@@ -39,3 +39,9 @@ def test_csv_read_error_carries_path():
     exc = CsvReadError(path=Path("/a.csv"), reason="encoding")
     assert exc.path == Path("/a.csv")
     assert exc.reason == "encoding"
+
+
+def test_exceptions_populate_args_for_logging():
+    exc = InvalidPlateFolderError(path=Path("/tmp/x"), reason="not_exists")
+    assert exc.args
+    assert str(exc) in exc.args[0]
