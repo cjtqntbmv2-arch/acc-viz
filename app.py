@@ -42,16 +42,22 @@ def _cached_load(folder: str, mtime_token: float) -> LoadResult:
 
 
 plates: dict[str, tuple] = {}
+load_errors: list[str] = []
 for label, folder in settings.folders:
     try:
         with st.spinner(S.LOADING_PLATE.format(label=label)):
             result = _cached_load(folder, _folder_mtime_token(folder))
     except AccVizError as exc:
-        st.error(format_error(exc, plate_label=label))
-        st.stop()
+        load_errors.append(format_error(exc, plate_label=label))
+        continue
     for w in result.warnings:
         st.warning(f"{label}: {w}")
     plates[label] = (result.hole_data, result.ref_df)
+
+if load_errors:
+    for msg in load_errors:
+        st.error(msg)
+    st.stop()
 
 grids: dict[str, np.ndarray] = {}
 ref_rms: dict[str, float] = {}
