@@ -76,6 +76,17 @@ HELP_INTERPOLATE = (
     "Wenn deaktiviert, werden nur gemessene Zellen angezeigt; "
     "fehlende Zellen bleiben leer. Standard: aktiv."
 )
+
+# Interpolations-Methode
+INTERP_METHOD = "Interpolations-Methode"
+INTERP_METHOD_LINEAR = "Linear (Delaunay)"
+INTERP_METHOD_TPS = "Thin-Plate-Spline"
+HELP_INTERP_METHOD = (
+    "Linear: schnell, zeigt Dreiecks-Facetten und bricht bei kollinearen Messpunkten ab. "
+    "Thin-Plate-Spline: glatte, physikalisch plausible Fläche, robust bei wenigen oder "
+    "kollinearen Punkten."
+)
+
 HELP_HISTOGRAM_BINS = (
     "Anzahl der Bins im Histogramm. Wird automatisch auf die "
     "Anzahl gemessener Löcher reduziert, wenn diese kleiner ist."
