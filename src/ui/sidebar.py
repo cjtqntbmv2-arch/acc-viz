@@ -7,6 +7,7 @@ from typing import Literal, cast, get_args
 
 import streamlit as st
 
+from src.analysis.interpolation import InterpolationMethod
 from src.platform_utils.folder_picker import pick_folder
 from src.ui import strings as S
 
@@ -30,6 +31,10 @@ class Settings:
         interpolate: Whether to fill missing heatmap cells via
             :func:`interpolate_grid`. When ``False`` only measured cells are
             shown; missing cells are rendered as transparent gaps.
+        interp_method: Selected interpolation algorithm for filling missing
+            heatmap cells: ``"linear"`` (Delaunay + nearest fallback) or
+            ``"tps"`` (thin-plate-spline). Ignored when :attr:`interpolate`
+            is ``False``.
         shared_scale: Whether heatmaps should share a common color scale
             across plates. Also drives the shared x-axis range for the
             per-plate histograms.
@@ -47,6 +52,7 @@ class Settings:
     colorscale: str
     interpolate: bool = True
     histogram_bins: int = 20
+    interp_method: InterpolationMethod = "linear"
 
 
 _COLORSCALES: tuple[str, ...] = (
@@ -128,6 +134,16 @@ def render_sidebar() -> Settings:
         axis: Axis = cast(Axis, axis_raw)
         normalize = st.toggle(S.NORMALIZE, value=False, help=S.HELP_NORMALIZE)
         interpolate = st.toggle(S.INTERPOLATE, value=True, help=S.HELP_INTERPOLATE)
+        method_label = st.radio(
+            S.INTERP_METHOD,
+            (S.INTERP_METHOD_LINEAR, S.INTERP_METHOD_TPS),
+            horizontal=True,
+            disabled=not interpolate,
+            help=S.HELP_INTERP_METHOD,
+        )
+        interp_method: InterpolationMethod = (
+            "tps" if method_label == S.INTERP_METHOD_TPS else "linear"
+        )
         histogram_bins = st.slider(
             S.HISTOGRAM_BINS, min_value=5, max_value=50,
             value=20, step=1, help=S.HELP_HISTOGRAM_BINS,
@@ -151,4 +167,5 @@ def render_sidebar() -> Settings:
         colorscale=colorscale,
         interpolate=interpolate,
         histogram_bins=int(histogram_bins),
+        interp_method=interp_method,
     )

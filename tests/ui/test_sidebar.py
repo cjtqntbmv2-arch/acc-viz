@@ -59,3 +59,16 @@ def test_axis_literal_contains_rss():
     args = get_args(Axis)
     assert "RSS" in args
     assert set(args) == {"X", "Y", "Z", "RSS"}
+
+
+def test_settings_interp_method_default_is_linear():
+    s = Settings(folders=[("Platte 1", "/a")], f_min=0, f_max=25000,
+                 axis="X", normalize=False, shared_scale=True, colorscale="Viridis")
+    assert s.interp_method == "linear"
+
+
+def test_settings_interp_method_can_be_tps():
+    s = Settings(folders=[("Platte 1", "/a")], f_min=0, f_max=25000,
+                 axis="X", normalize=False, shared_scale=True,
+                 colorscale="Viridis", interp_method="tps")
+    assert s.interp_method == "tps"
