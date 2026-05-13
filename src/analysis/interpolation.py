@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Grid interpolation helpers used to fill missing heatmap cells."""
 
-from typing import Literal
+from typing import Literal, cast
 
 import numpy as np
 from scipy.interpolate import RBFInterpolator, griddata
@@ -38,12 +38,15 @@ def interpolate_grid(
     nrows, ncols = grid.shape
     rows, cols = np.mgrid[0:nrows, 0:ncols]
 
-    if method == "tps":
+    # Cast to ``str`` so the unknown-method branch stays reachable for static
+    # analysers — UI mappings and tests can legitimately pass arbitrary strings.
+    method_name = cast(str, method)
+    if method_name == "tps":
         return _interpolate_tps(points, values, rows, cols)
-    if method == "linear":
+    if method_name == "linear":
         return _interpolate_linear(points, values, rows, cols)
     raise ValueError(
-        f"Unknown interpolation method: {method!r}. Expected 'linear' or 'tps'."
+        f"Unknown interpolation method: {method_name!r}. Expected 'linear' or 'tps'."
     )
 
 
