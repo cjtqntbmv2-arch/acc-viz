@@ -27,9 +27,15 @@ class Settings:
             Quadrate der drei Einzelachsen-gRMS-Werte (Root Sum of Squares).
         normalize: Whether to normalize hole RMS values against the reference
             measurement.
+        interpolate: Whether to fill missing heatmap cells via
+            :func:`interpolate_grid`. When ``False`` only measured cells are
+            shown; missing cells are rendered as transparent gaps.
         shared_scale: Whether heatmaps should share a common color scale
-            across plates.
+            across plates. Also drives the shared x-axis range for the
+            per-plate histograms.
         colorscale: Plotly colorscale identifier selected by the user.
+        histogram_bins: Upper bound on the histogram bin count. The actual
+            bin count is capped at the number of measured holes.
     """
 
     folders: list[tuple[str, str]]  # (label, raw path)
@@ -39,6 +45,8 @@ class Settings:
     normalize: bool
     shared_scale: bool
     colorscale: str
+    interpolate: bool = True
+    histogram_bins: int = 20
 
 
 _COLORSCALES: tuple[str, ...] = (
@@ -119,6 +127,11 @@ def render_sidebar() -> Settings:
             axis_raw = "X"
         axis: Axis = cast(Axis, axis_raw)
         normalize = st.toggle(S.NORMALIZE, value=False, help=S.HELP_NORMALIZE)
+        interpolate = st.toggle(S.INTERPOLATE, value=True, help=S.HELP_INTERPOLATE)
+        histogram_bins = st.slider(
+            S.HISTOGRAM_BINS, min_value=5, max_value=50,
+            value=20, step=1, help=S.HELP_HISTOGRAM_BINS,
+        )
         shared_scale = st.checkbox(S.SHARED_SCALE, value=True, help=S.HELP_SHARED_SCALE)
         colorscale = st.selectbox(S.COLORSCALE, _COLORSCALES, help=S.HELP_COLORSCALE)
 
@@ -136,4 +149,6 @@ def render_sidebar() -> Settings:
         normalize=normalize,
         shared_scale=shared_scale,
         colorscale=colorscale,
+        interpolate=interpolate,
+        histogram_bins=int(histogram_bins),
     )

@@ -50,8 +50,8 @@ def make_heatmap(
     fig = go.Figure(
         go.Heatmap(
             z=grid.T,
-            x=list(range(1, nrows + 1)),
-            y=list(range(1, ncols + 1)),
+            x=list(range(0, nrows)),
+            y=list(range(0, ncols)),
             colorscale=colorscale,
             zmin=z_range[0] if z_range else None,
             zmax=z_range[1] if z_range else None,
@@ -75,8 +75,8 @@ def make_heatmap(
     ))
     if ref_value is not None:
         fig.add_trace(go.Scatter(
-            x=[(nrows + 1) / 2],
-            y=[(ncols + 1) / 2],
+            x=[(nrows - 1) / 2],
+            y=[(ncols - 1) / 2],
             mode="markers",
             marker=dict(
                 size=REF_STAR_SIZE,

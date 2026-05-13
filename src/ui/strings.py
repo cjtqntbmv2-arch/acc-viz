@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-PAGE_TITLE = "Beschleunigungsverteilung"
-APP_TITLE = "Beschleunigungsverteilung — Plattenanalyse"
+PAGE_TITLE = "Beschleunigungs-Visualisierung"
+APP_TITLE = "Beschleunigungs-Visualisierung — Plattenanalyse"
 
 SIDEBAR_HEADER = "Einstellungen"
 FOLDER_PLATE_1 = "Platte 1 — Ordnerpfad"
@@ -11,6 +11,7 @@ PICK_FOLDER = "Ordner wählen"
 FREQUENCY_BAND = "Frequenzband (Hz)"
 AXIS = "Achse"
 NORMALIZE = "Normalisiert (relativ zur Referenz)"
+INTERPOLATE = "Interpolation"
 SHARED_SCALE = "Gemeinsame Farbskala"
 COLORSCALE = "Farbskala"
 
@@ -46,6 +47,11 @@ SPECTRUM_TRACE_AXIS_TMPL = "PSD {axis}"
 HEATMAP_X_LABEL = "x-Bohrung"
 HEATMAP_Y_LABEL = "y-Bohrung"
 
+HISTOGRAM_X_LABEL_TMPL = "Beschleunigung ({label})"
+HISTOGRAM_Y_LABEL = "Anzahl Löcher"
+HISTOGRAM_BINS = "Histogramm-Bins"
+HISTOGRAM_EMPTY = "Keine Daten für Histogramm."
+
 WARN_NO_DATA_FOR_HOLE = "{name}: Keine Messdaten für Bohrung ({x}, {y})."
 
 HELP_FOLDER_PLATE = (
@@ -65,6 +71,14 @@ HELP_AXIS = (
 HELP_NORMALIZE = (
     "Teilt jeden Bohrungs-RMS durch den Referenz-RMS derselben Platte. "
     "Ergebnis dimensionslos, Referenz = 1,0. Erfordert reference.csv."
+)
+HELP_INTERPOLATE = (
+    "Wenn deaktiviert, werden nur gemessene Zellen angezeigt; "
+    "fehlende Zellen bleiben leer. Standard: aktiv."
+)
+HELP_HISTOGRAM_BINS = (
+    "Anzahl der Bins im Histogramm. Wird automatisch auf die "
+    "Anzahl gemessener Löcher reduziert, wenn diese kleiner ist."
 )
 HELP_SHARED_SCALE = (
     "Wenn aktiv, nutzen alle Heatmaps denselben zmin/zmax-Bereich — "

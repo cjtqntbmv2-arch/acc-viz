@@ -29,6 +29,32 @@ def test_settings_accepts_rss_axis():
     assert s.axis == "RSS"
 
 
+def test_settings_interpolate_default_true():
+    s = Settings(folders=[("Platte 1", "/a")], f_min=0, f_max=25000,
+                 axis="X", normalize=False, shared_scale=True, colorscale="Viridis")
+    assert s.interpolate is True
+
+
+def test_settings_interpolate_can_be_disabled():
+    s = Settings(folders=[("Platte 1", "/a")], f_min=0, f_max=25000,
+                 axis="X", normalize=False, shared_scale=True,
+                 colorscale="Viridis", interpolate=False)
+    assert s.interpolate is False
+
+
+def test_settings_histogram_bins_default_is_20():
+    s = Settings(folders=[("Platte 1", "/a")], f_min=0, f_max=25000,
+                 axis="X", normalize=False, shared_scale=True, colorscale="Viridis")
+    assert s.histogram_bins == 20
+
+
+def test_settings_histogram_bins_can_be_set():
+    s = Settings(folders=[("Platte 1", "/a")], f_min=0, f_max=25000,
+                 axis="X", normalize=False, shared_scale=True,
+                 colorscale="Viridis", histogram_bins=10)
+    assert s.histogram_bins == 10
+
+
 def test_axis_literal_contains_rss():
     args = get_args(Axis)
     assert "RSS" in args

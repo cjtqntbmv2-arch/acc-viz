@@ -17,6 +17,7 @@ from src.ui import strings as S
 from src.ui.errors import format_error
 from src.ui.export import render_csv_export
 from src.ui.heatmap import make_heatmap
+from src.ui.histogram import make_histogram
 from src.ui.sidebar import Settings, render_sidebar
 from src.ui.spectrum import render_spectrum
 
@@ -92,7 +93,10 @@ def _ref_for_interp(name: str) -> float | None:
     return 1.0 if settings.normalize else val
 
 
-interp_grids = {name: interpolate_grid(g, _ref_for_interp(name)) for name, g in grids.items()}
+if settings.interpolate:
+    interp_grids = {name: interpolate_grid(g, _ref_for_interp(name)) for name, g in grids.items()}
+else:
+    interp_grids = {name: g.copy() for name, g in grids.items()}
 
 if interp_grids:
     stacked = np.concatenate([g.ravel() for g in interp_grids.values()])
@@ -120,7 +124,7 @@ for col, name in zip(cols, plates.keys()):
         positions: list[tuple[int, int]] = []
         values: list[float] = []
         for (x, y) in hole_data_plate.keys():
-            v = float(sparse_grid[x - 1, y - 1])
+            v = float(sparse_grid[x, y])
             if not np.isnan(v):
                 positions.append((x, y))
                 values.append(v)
@@ -148,6 +152,16 @@ for col, name in zip(cols, plates.keys()):
             use_container_width=True,
         )
         st.caption(S.CAPTION_HEATMAP_LEGEND)
+
+        hist_fig = make_histogram(
+            grids[name].ravel(),
+            bins=settings.histogram_bins,
+            normalized=settings.normalize,
+            ref_value=ref_marker,
+            x_range=z_range if settings.shared_scale else None,
+        )
+        st.plotly_chart(hist_fig, use_container_width=True, key=f"hist_{name}")
+
         clicked: tuple[int, int] | None = None
         points = getattr(getattr(event, "selection", None), "points", None)
         if points is None and isinstance(event, dict):

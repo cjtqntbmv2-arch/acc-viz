@@ -26,7 +26,7 @@ def build_grid(
     divided by that reference value.
 
     Args:
-        hole_data: Mapping from ``(x, y)`` hole coordinate (1-indexed) to the
+        hole_data: Mapping from ``(x, y)`` hole coordinate (0-indexed) to the
             measurement DataFrame for that hole.
         ref_df: Optional reference DataFrame used for normalization.
         f_min: Lower bound of the frequency band in Hz.
@@ -38,22 +38,23 @@ def build_grid(
             is positive and finite.
 
     Returns:
-        A 2D array of shape ``(max_x, max_y)`` with NaN entries for missing
-        holes. Returns a single-NaN ``(1, 1)`` array when ``hole_data`` is
-        empty.
+        A 2D array of shape ``(max_x + 1, max_y + 1)`` with NaN entries for
+        missing holes. Coordinates are 0-indexed; cell ``(0, 0)`` corresponds
+        to hole ``x0-y0``. Returns a single-NaN ``(1, 1)`` array when
+        ``hole_data`` is empty.
     """
     if not hole_data:
         return np.full((1, 1), np.nan)
 
     max_x = max(x for x, _ in hole_data)
     max_y = max(y for _, y in hole_data)
-    grid = np.full((max_x, max_y), np.nan)
+    grid = np.full((max_x + 1, max_y + 1), np.nan)
 
     ref_rms = compute_band_rms(ref_df, f_min, f_max, axis) if ref_df is not None else None
     use_norm = normalize and ref_rms is not None and np.isfinite(ref_rms) and ref_rms > 0
 
     for (x, y), df in hole_data.items():
         rms = compute_band_rms(df, f_min, f_max, axis)
-        grid[x - 1, y - 1] = rms / ref_rms if use_norm else rms
+        grid[x, y] = rms / ref_rms if use_norm else rms
 
     return grid
