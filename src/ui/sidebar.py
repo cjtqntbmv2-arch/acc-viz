@@ -134,15 +134,20 @@ def render_sidebar() -> Settings:
         axis: Axis = cast(Axis, axis_raw)
         normalize = st.toggle(S.NORMALIZE, value=False, help=S.HELP_NORMALIZE)
         interpolate = st.toggle(S.INTERPOLATE, value=True, help=S.HELP_INTERPOLATE)
+        # Single source of truth for the label <-> Literal mapping.
+        method_labels: dict[str, InterpolationMethod] = {
+            S.INTERP_METHOD_LINEAR: "linear",
+            S.INTERP_METHOD_TPS: "tps",
+        }
         method_label = st.radio(
             S.INTERP_METHOD,
-            (S.INTERP_METHOD_LINEAR, S.INTERP_METHOD_TPS),
+            tuple(method_labels.keys()),
             horizontal=True,
             disabled=not interpolate,
             help=S.HELP_INTERP_METHOD,
         )
-        interp_method: InterpolationMethod = (
-            "tps" if method_label == S.INTERP_METHOD_TPS else "linear"
+        interp_method: InterpolationMethod = method_labels.get(
+            method_label or "", "linear"
         )
         histogram_bins = st.slider(
             S.HISTOGRAM_BINS, min_value=5, max_value=50,
