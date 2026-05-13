@@ -107,7 +107,11 @@ def _interpolate_tps(
         interp = RBFInterpolator(
             points, values, kernel="thin_plate_spline", smoothing=0.0
         )
-    except np.linalg.LinAlgError:
+    except (np.linalg.LinAlgError, ValueError):
+        # scipy raises LinAlgError today for the singular monomial matrix
+        # that collinear points produce, but related failure modes have
+        # surfaced as ValueError on other scipy versions. Catch both to keep
+        # the collinear fallback robust across upgrades.
         interp = RBFInterpolator(
             points, values, kernel="thin_plate_spline", smoothing=0.0, degree=-1
         )
