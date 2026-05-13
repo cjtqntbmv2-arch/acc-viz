@@ -97,7 +97,19 @@ def _interpolate_tps(
     rows: np.ndarray,
     cols: np.ndarray,
 ) -> np.ndarray:
-    """Thin-plate-spline RBF interpolation (smooth, no hull boundary)."""
-    interp = RBFInterpolator(points, values, kernel="thin_plate_spline", smoothing=0.0)
+    """Thin-plate-spline RBF interpolation (smooth, no hull boundary).
+
+    Falls back to ``degree=-1`` (no polynomial term) when the default
+    affine-augmented system is rank-deficient — e.g. all known points are
+    collinear, which makes the monomial matrix singular.
+    """
+    try:
+        interp = RBFInterpolator(
+            points, values, kernel="thin_plate_spline", smoothing=0.0
+        )
+    except np.linalg.LinAlgError:
+        interp = RBFInterpolator(
+            points, values, kernel="thin_plate_spline", smoothing=0.0, degree=-1
+        )
     query = np.column_stack([rows.ravel(), cols.ravel()])
     return interp(query).reshape(rows.shape)
