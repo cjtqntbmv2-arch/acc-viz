@@ -94,7 +94,10 @@ def _ref_for_interp(name: str) -> float | None:
 
 
 if settings.interpolate:
-    interp_grids = {name: interpolate_grid(g, _ref_for_interp(name)) for name, g in grids.items()}
+    interp_grids = {
+        name: interpolate_grid(g, _ref_for_interp(name), method=settings.interp_method)
+        for name, g in grids.items()
+    }
 else:
     interp_grids = {name: g.copy() for name, g in grids.items()}
 
