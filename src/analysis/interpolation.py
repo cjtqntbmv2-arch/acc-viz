@@ -40,7 +40,11 @@ def interpolate_grid(
 
     if method == "tps":
         return _interpolate_tps(points, values, rows, cols)
-    return _interpolate_linear(points, values, rows, cols)
+    if method == "linear":
+        return _interpolate_linear(points, values, rows, cols)
+    raise ValueError(
+        f"Unknown interpolation method: {method!r}. Expected 'linear' or 'tps'."
+    )
 
 
 def _collect_known_points(

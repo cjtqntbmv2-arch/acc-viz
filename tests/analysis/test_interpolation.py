@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 from src.analysis.interpolation import interpolate_grid
 
 
@@ -82,3 +83,13 @@ def test_interpolate_grid_linear_is_default_and_unchanged():
     assert out_linear[2, 2] == 3.0
     # center is interpolated near 2.0
     assert abs(out_linear[1, 1] - 2.0) < 1e-9
+
+
+def test_interpolate_grid_raises_for_unknown_method():
+    grid = np.array([
+        [1.0, np.nan, 3.0],
+        [np.nan, 2.0, np.nan],
+        [1.0, np.nan, 3.0],
+    ])
+    with pytest.raises(ValueError, match="Unknown interpolation method"):
+        interpolate_grid(grid, method="cubic")  # type: ignore[arg-type]
