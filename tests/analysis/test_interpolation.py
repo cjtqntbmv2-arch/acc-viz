@@ -66,3 +66,19 @@ def test_reference_skipped_when_center_is_known():
     grid[1, 1] = 42.0  # center coincides with a real measurement
     result = interpolate_grid(grid, ref_value=5.0)
     assert np.isclose(result[1, 1], 42.0)
+
+
+def test_interpolate_grid_linear_is_default_and_unchanged():
+    grid = np.array([
+        [1.0, np.nan, 3.0],
+        [np.nan, np.nan, np.nan],
+        [1.0, np.nan, 3.0],
+    ])
+    out_default = interpolate_grid(grid)
+    out_linear = interpolate_grid(grid, method="linear")
+    np.testing.assert_array_equal(out_default, out_linear)
+    # corners are pinned to their measurements
+    assert out_linear[0, 0] == 1.0
+    assert out_linear[2, 2] == 3.0
+    # center is interpolated near 2.0
+    assert abs(out_linear[1, 1] - 2.0) < 1e-9
