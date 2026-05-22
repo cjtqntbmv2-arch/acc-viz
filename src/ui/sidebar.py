@@ -1,78 +1,22 @@
 from __future__ import annotations
 
-"""Streamlit sidebar controls and the immutable :class:`Settings` snapshot."""
+"""Streamlit sidebar controls.
 
-from dataclasses import dataclass
-from typing import Literal, cast, get_args
+The :class:`Settings` snapshot now lives in the frontend-agnostic
+:mod:`src.core.settings`; it is re-exported here for backward compatibility.
+"""
+
+from typing import cast, get_args
 
 import streamlit as st
 
 from src.analysis.interpolation import InterpolationMethod
+from src.core.colorscales import COLORSCALES
+from src.core.settings import Axis, Settings, normalize_path
 from src.platform_utils.folder_picker import pick_folder
 from src.ui import strings as S
 
-Axis = Literal["X", "Y", "Z", "RSS"]
-
-
-@dataclass(frozen=True)
-class Settings:
-    """Immutable snapshot of all user-selected analysis settings.
-
-    Attributes:
-        folders: List of ``(label, raw_path)`` tuples for every non-empty
-            folder input the user provided.
-        f_min: Lower bound of the selected frequency band in Hz.
-        f_max: Upper bound of the selected frequency band in Hz.
-        axis: Axis (``"X"``, ``"Y"``, ``"Z"``, or ``"RSS"``) used for the
-            RMS computation. ``"RSS"`` entspricht der Wurzel der Summe der
-            Quadrate der drei Einzelachsen-gRMS-Werte (Root Sum of Squares).
-        normalize: Whether to normalize hole RMS values against the reference
-            measurement.
-        interpolate: Whether to fill missing heatmap cells via
-            :func:`interpolate_grid`. When ``False`` only measured cells are
-            shown; missing cells are rendered as transparent gaps.
-        interp_method: Selected interpolation algorithm for filling missing
-            heatmap cells: ``"linear"`` (Delaunay + nearest fallback) or
-            ``"tps"`` (thin-plate-spline). Ignored when :attr:`interpolate`
-            is ``False``.
-        shared_scale: Whether heatmaps should share a common color scale
-            across plates. Also drives the shared x-axis range for the
-            per-plate histograms.
-        colorscale: Plotly colorscale identifier selected by the user.
-        histogram_bins: Upper bound on the histogram bin count. The actual
-            bin count is capped at the number of measured holes.
-    """
-
-    folders: list[tuple[str, str]]  # (label, raw path)
-    f_min: int
-    f_max: int
-    axis: Axis
-    normalize: bool
-    shared_scale: bool
-    colorscale: str
-    interpolate: bool = True
-    histogram_bins: int = 20
-    interp_method: InterpolationMethod = "linear"
-
-
-_COLORSCALES: tuple[str, ...] = (
-    "Viridis", "Plasma", "Hot", "RdBu", "Cividis", "Turbo", "Inferno",
-)
-
-
-def _normalize_path(raw: str) -> str:
-    """Strip surrounding whitespace and matching single/double quotes.
-
-    Users often paste paths from terminals or file managers with enclosing
-    quotes; this helper makes those inputs usable.
-
-    Args:
-        raw: Raw string as typed or pasted by the user.
-
-    Returns:
-        The cleaned path string.
-    """
-    return raw.strip().strip('"').strip("'")
+__all__ = ["Axis", "Settings", "render_sidebar"]
 
 
 def _folder_input(label: str, key: str, help_text: str | None = None) -> str:
@@ -104,7 +48,7 @@ def _folder_input(label: str, key: str, help_text: str | None = None) -> str:
                 st.rerun()
     with col_a:
         st.text_input(label, key=key, help=help_text)
-    return _normalize_path(st.session_state[key])
+    return normalize_path(st.session_state[key])
 
 
 def render_sidebar() -> Settings:
@@ -154,7 +98,7 @@ def render_sidebar() -> Settings:
             value=20, step=1, help=S.HELP_HISTOGRAM_BINS,
         )
         shared_scale = st.checkbox(S.SHARED_SCALE, value=True, help=S.HELP_SHARED_SCALE)
-        colorscale = st.selectbox(S.COLORSCALE, _COLORSCALES, help=S.HELP_COLORSCALE)
+        colorscale = st.selectbox(S.COLORSCALE, COLORSCALES, help=S.HELP_COLORSCALE)
 
     folders: list[tuple[str, str]] = []
     if p1:
