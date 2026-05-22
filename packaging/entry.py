@@ -1,67 +1,45 @@
 from __future__ import annotations
 
+"""Frozen-app entry point: launch the native PySide6 desktop application.
+
+Replaces the former Streamlit bootstrap. When ``ACC_VIZ_SMOKE=1`` the app quits
+itself after a short delay so the packaging smoke test can assert a clean exit
+without a human closing the window.
+"""
+
 import logging
 import os
-import socket
 import sys
-import threading
-import time
-import webbrowser
 from pathlib import Path
 
 
-def _free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
-
-
-def _open_browser_delayed(url: str, delay: float = 1.5) -> None:
-    time.sleep(delay)
-    try:
-        webbrowser.open(url)
-    except Exception as exc:
-        logging.getLogger(__name__).warning("Could not open browser: %s", exc)
-
-
-def main() -> None:
+def main() -> int:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s %(levelname)s %(name)s: %(message)s",
     )
 
-    from streamlit.web import bootstrap
-
+    # When frozen, PyInstaller unpacks to sys._MEIPASS; otherwise use repo root.
     base = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent.parent))
-    app_path = str(base / "app.py")
     os.chdir(base)
+    if str(base) not in sys.path:
+        sys.path.insert(0, str(base))
 
-    port = (
-        int(os.environ["ACC_VIZ_PORT"])
-        if "ACC_VIZ_PORT" in os.environ
-        else _free_port()
-    )
-    open_browser = os.environ.get("ACC_VIZ_OPEN_BROWSER", "1") != "0"
+    from PySide6.QtWidgets import QApplication
 
-    if open_browser:
-        threading.Thread(
-            target=_open_browser_delayed,
-            args=(f"http://localhost:{port}",),
-            daemon=True,
-        ).start()
+    from src.desktop.main_window import MainWindow
 
-    bootstrap.run(
-        app_path,
-        is_hello=False,
-        args=[],
-        flag_options={
-            "server.headless": True,
-            "browser.gatherUsageStats": False,
-            "server.port": port,
-            "server.address": "127.0.0.1",
-        },
-    )
+    app = QApplication.instance() or QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+
+    if os.environ.get("ACC_VIZ_SMOKE") == "1":
+        from PySide6.QtCore import QTimer
+
+        QTimer.singleShot(1500, app.quit)
+
+    return app.exec()
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

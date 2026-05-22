@@ -1,44 +1,60 @@
 # -*- mode: python ; coding: utf-8 -*-
-# PyInstaller spec for acc_visualisation.
+# PyInstaller spec for the native PySide6 desktop build of acc_visualisation.
 # Build: pyinstaller packaging/acc_viz.spec
+#
+# Note: cross-compiling is not supported by PyInstaller. Build the Windows .exe
+# on Windows and the macOS .app on macOS (see .github/workflows/ci.yml).
 
 from pathlib import Path
 import sys
 
-from PyInstaller.utils.hooks import collect_all, collect_data_files, collect_submodules
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 block_cipher = None
 
-streamlit_datas, streamlit_bins, streamlit_hidden = collect_all("streamlit")
-plotly_datas, plotly_bins, plotly_hidden = collect_all("plotly")
+# matplotlib ships data files (mpl-data: fonts, styles) that must be bundled.
+mpl_datas = collect_data_files("matplotlib")
+mpl_hidden = collect_submodules("matplotlib.backends")
 scipy_hidden = collect_submodules("scipy")
 pandas_hidden = collect_submodules("pandas")
 
 project_root = Path(SPECPATH).parent.resolve()
 
 added_files = [
-    (str(project_root / "app.py"), "."),
+    (str(project_root / "desktop_main.py"), "."),
     (str(project_root / "src"), "src"),
 ]
-added_files += streamlit_datas + plotly_datas
+added_files += mpl_datas
 
 hidden = [
-    "streamlit.web.bootstrap",
-    "streamlit.runtime.scriptrunner.magic_funcs",
+    # PySide6 modules used by the app + the matplotlib Qt backend.
+    "PySide6.QtCore",
+    "PySide6.QtGui",
+    "PySide6.QtWidgets",
+    "matplotlib.backends.backend_qtagg",
+] + mpl_hidden + scipy_hidden + pandas_hidden
+
+# Keep the bundle lean: the native app never imports the old web stack.
+excludes = [
+    "streamlit",
+    "plotly",
+    "tornado",
     "tkinter",
-    "tkinter.filedialog",
-] + streamlit_hidden + plotly_hidden + scipy_hidden + pandas_hidden
+    "PyQt5",
+    "PyQt6",
+    "IPython",
+]
 
 a = Analysis(
     [str(project_root / "packaging" / "entry.py")],
     pathex=[str(project_root)],
-    binaries=streamlit_bins + plotly_bins,
+    binaries=[],
     datas=added_files,
     hiddenimports=hidden,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=excludes,
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,

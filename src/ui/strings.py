@@ -4,6 +4,8 @@ PAGE_TITLE = "Beschleunigungs-Visualisierung"
 APP_TITLE = "Beschleunigungs-Visualisierung — Plattenanalyse"
 
 SIDEBAR_HEADER = "Einstellungen"
+# Plate identifiers used as keys/labels throughout (Settings.folders, plate names).
+PLATE_LABELS = ("Platte 1", "Platte 2")
 FOLDER_PLATE_1 = "Platte 1 — Ordnerpfad"
 FOLDER_PLATE_2 = "Platte 2 — Ordnerpfad (optional)"
 PICK_FOLDER = "Ordner wählen"

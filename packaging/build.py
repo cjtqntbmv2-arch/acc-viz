@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+"""Build the native desktop bundle with PyInstaller and smoke-test the binary.
+
+The smoke test launches the frozen app with ``ACC_VIZ_SMOKE=1`` (which makes it
+self-quit after a short delay) on the Qt 'offscreen' platform, then asserts a
+clean exit code — no display or human interaction required.
+"""
+
 import logging
 import os
-import socket
 import subprocess
 import sys
-import time
-import urllib.error
-import urllib.request
 from pathlib import Path
 
 
@@ -31,44 +34,27 @@ def _binary_path() -> Path:
     return DIST / "acc_viz"
 
 
-def _free_port() -> int:
-    with socket.socket() as s:
-        s.bind(("127.0.0.1", 0))
-        return s.getsockname()[1]
-
-
 def _smoke_test() -> None:
     bin_path = _binary_path()
     if not bin_path.exists():
         raise SystemExit(f"Built binary not found: {bin_path}")
 
-    port = _free_port()
-    env = {**os.environ, "ACC_VIZ_PORT": str(port), "ACC_VIZ_OPEN_BROWSER": "0"}
-    proc = subprocess.Popen([str(bin_path)], env=env)
+    env = {
+        **os.environ,
+        "ACC_VIZ_SMOKE": "1",
+        "QT_QPA_PLATFORM": "offscreen",
+    }
+    _LOG.info("Smoke test: launching %s (offscreen, self-quit)", bin_path)
     try:
-        health = f"http://127.0.0.1:{port}/_stcore/health"
-        deadline = time.time() + 60
-        last_err: Exception | None = None
-        while time.time() < deadline:
-            if proc.poll() is not None:
-                raise SystemExit(
-                    f"Bundled app exited prematurely with code {proc.returncode}"
-                )
-            try:
-                with urllib.request.urlopen(health, timeout=2) as r:
-                    if r.status == 200:
-                        _LOG.info("Smoke test: health OK on port %s", port)
-                        return
-            except (urllib.error.URLError, ConnectionError, TimeoutError, OSError) as e:
-                last_err = e
-                time.sleep(1)
-        raise SystemExit(f"Smoke test failed (no health response): {last_err}")
-    finally:
-        proc.terminate()
-        try:
-            proc.wait(timeout=10)
-        except subprocess.TimeoutExpired:
-            proc.kill()
+        proc = subprocess.run([str(bin_path)], env=env, timeout=90)
+    except subprocess.TimeoutExpired as exc:
+        raise SystemExit("Smoke test failed: app did not exit within 90s") from exc
+
+    if proc.returncode != 0:
+        raise SystemExit(
+            f"Smoke test failed: app exited with code {proc.returncode}"
+        )
+    _LOG.info("Smoke test passed: clean exit")
 
 
 def main() -> None:
