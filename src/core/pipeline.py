@@ -9,7 +9,7 @@ Streamlit / Qt imports here on purpose.
 
 import math
 from collections import OrderedDict
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -60,13 +60,20 @@ class Analysis:
             measurement was present).
         z_range: Shared ``(zmin, zmax)`` color range when
             :attr:`Settings.shared_scale` is set and finite data exists,
-            otherwise ``None``.
+            otherwise ``None``. Derived from the interpolated grids, so it
+            drives the heatmap colour scale.
+        hist_range: Shared ``(min, max)`` range for the per-plate histograms,
+            derived from the *measured* (sparse) grids only — never from
+            interpolated values — so the histogram reflects real measurements.
+            ``None`` when :attr:`Settings.shared_scale` is unset or no finite
+            measured data exists.
     """
 
     grids: dict[str, np.ndarray]
     interp_grids: dict[str, np.ndarray]
     ref_rms: dict[str, float]
     z_range: tuple[float, float] | None
+    hist_range: tuple[float, float] | None
 
 
 # --- loading (with mtime-based caching, replacing st.cache_data) -----------
@@ -181,18 +188,30 @@ def analyze(plates: dict[str, PlateEntry], settings: Settings) -> Analysis:
     else:
         interp_grids = {name: g.copy() for name, g in grids.items()}
 
-    if interp_grids:
-        stacked = np.concatenate([g.ravel() for g in interp_grids.values()])
-        finite = stacked[np.isfinite(stacked)]
-        z_range = (
-            (float(finite.min()), float(finite.max()))
-            if settings.shared_scale and finite.size
-            else None
-        )
-    else:
-        z_range = None
+    # z_range drives the heatmap colour scale (interpolated surface); hist_range
+    # drives the histogram x-axis and must stay on real measurements only.
+    z_range = _shared_range(interp_grids.values()) if settings.shared_scale else None
+    hist_range = _shared_range(grids.values()) if settings.shared_scale else None
 
-    return Analysis(grids=grids, interp_grids=interp_grids, ref_rms=ref_rms, z_range=z_range)
+    return Analysis(
+        grids=grids,
+        interp_grids=interp_grids,
+        ref_rms=ref_rms,
+        z_range=z_range,
+        hist_range=hist_range,
+    )
+
+
+def _shared_range(grids: Iterable[np.ndarray]) -> tuple[float, float] | None:
+    """Return the ``(min, max)`` over all finite cells, or ``None`` if empty."""
+    arrays = list(grids)
+    if not arrays:
+        return None
+    stacked = np.concatenate([g.ravel() for g in arrays])
+    finite = stacked[np.isfinite(stacked)]
+    if not finite.size:
+        return None
+    return float(finite.min()), float(finite.max())
 
 
 # --- shared render helpers (frontend-agnostic) -----------------------------

@@ -49,10 +49,18 @@ SPECTRUM_TRACE_AXIS_TMPL = "PSD {axis}"
 HEATMAP_X_LABEL = "x-Bohrung"
 HEATMAP_Y_LABEL = "y-Bohrung"
 
+HEATMAP_HOVER_MEASURED = "x={x}, y={y}\n{label}={value:.4f}"
+HEATMAP_HOVER_INTERPOLATED = "x={x}, y={y}\nInterpoliert ({label})={value:.4f}"
+HEATMAP_HOVER_REFERENCE = "Referenz (Mitte)\n{label}={value:.4f}"
+
 HISTOGRAM_X_LABEL_TMPL = "Beschleunigung ({label})"
 HISTOGRAM_Y_LABEL = "Anzahl Löcher"
 HISTOGRAM_BINS = "Histogramm-Bins"
 HISTOGRAM_EMPTY = "Keine Daten für Histogramm."
+HISTOGRAM_STATS = "Statistik anzeigen"
+HISTOGRAM_STAT_MEAN = "µ = {value:.3g}"
+HISTOGRAM_STAT_MEDIAN = "Median = {value:.3g}"
+HISTOGRAM_STAT_SIGMA = "±1σ ({value:.3g})"
 
 WARN_NO_DATA_FOR_HOLE = "{name}: Keine Messdaten für Bohrung ({x}, {y})."
 
@@ -96,6 +104,10 @@ HELP_HISTOGRAM_BINS = (
 HELP_SHARED_SCALE = (
     "Wenn aktiv, nutzen alle Heatmaps denselben zmin/zmax-Bereich — "
     "erleichtert den direkten Platten-Vergleich."
+)
+HELP_HISTOGRAM_STATS = (
+    "Blendet Mittelwert, Median und ±1σ als vertikale Linien mit "
+    "Zahlenwerten im Histogramm ein."
 )
 HELP_COLORSCALE = (
     "Farbpalette der Heatmap. Viridis/Cividis sind perzeptuell "

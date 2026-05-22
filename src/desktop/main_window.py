@@ -2,8 +2,8 @@ from __future__ import annotations
 
 """Main application window — native desktop replacement for the Streamlit app.
 
-Holds the :class:`ControlPanel` in a left dock and reacts to its
-``settingsChanged`` signal by re-running the (frontend-agnostic) analysis
+Holds the :class:`ControlPanel` in the left pane of a horizontal splitter and
+reacts to its ``settingsChanged`` signal by re-running the (frontend-agnostic) analysis
 pipeline and redrawing. This replaces Streamlit's "re-run the whole script on
 every widget change" model with an explicit Qt signal/slot recompute.
 """
@@ -11,9 +11,9 @@ every widget change" model with an explicit Qt signal/slot recompute.
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
 from PySide6.QtWidgets import (
-    QDockWidget,
     QLabel,
     QMainWindow,
+    QScrollArea,
     QSplitter,
     QStatusBar,
     QToolBar,
@@ -56,10 +56,20 @@ class MainWindow(QMainWindow):
         self.resize(1280, 860)
 
         self._control_panel = ControlPanel()
-        dock = QDockWidget(S.SIDEBAR_HEADER, self)
-        dock.setWidget(self._control_panel)
-        dock.setFeatures(QDockWidget.DockWidgetFeature.NoDockWidgetFeatures)
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock)
+
+        self._content_scroll = QScrollArea()
+        self._content_scroll.setWidgetResizable(True)
+        self._content_scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
+
+        self._main_splitter = QSplitter(Qt.Orientation.Horizontal)
+        self._main_splitter.addWidget(self._control_panel)
+        self._main_splitter.addWidget(self._content_scroll)
+        self._main_splitter.setStretchFactor(0, 0)
+        self._main_splitter.setStretchFactor(1, 1)
+        self._main_splitter.setSizes([320, 960])
+        self.setCentralWidget(self._main_splitter)
 
         self.setStatusBar(QStatusBar(self))
 
@@ -78,7 +88,6 @@ class MainWindow(QMainWindow):
 
         # Per-plate widgets, rebuilt on every render.
         self._heatmaps: dict[str, HeatmapCanvas] = {}
-        self._histograms: dict[str, HistogramCanvas] = {}
         self._ref_labels: dict[str, QLabel] = {}
         self._spectrum_canvas: SpectrumCanvas | None = None
         self._spectrum_layout: QVBoxLayout | None = None
@@ -176,12 +185,11 @@ class MainWindow(QMainWindow):
         hint.setWordWrap(True)
         self._spectrum_layout.addWidget(hint)
 
-        outer = QSplitter(Qt.Orientation.Vertical)
-        outer.addWidget(plate_splitter)
-        outer.addWidget(spectrum_container)
-        outer.setStretchFactor(0, 3)
-        outer.setStretchFactor(1, 2)
-        self.setCentralWidget(outer)
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        content_layout.addWidget(plate_splitter)
+        content_layout.addWidget(spectrum_container)
+        self._content_scroll.setWidget(content)
 
     def _build_plate_column(
         self,
@@ -236,7 +244,8 @@ class MainWindow(QMainWindow):
             bins=settings.histogram_bins,
             normalized=settings.normalize,
             ref_value=marker,
-            x_range=analysis.z_range if settings.shared_scale else None,
+            x_range=analysis.hist_range if settings.shared_scale else None,
+            show_stats=settings.histogram_stats,
         )
         layout.addWidget(histogram, stretch=2)
 
@@ -287,7 +296,7 @@ class MainWindow(QMainWindow):
         placeholder = QLabel(text)
         placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)
         placeholder.setWordWrap(True)
-        self.setCentralWidget(placeholder)
+        self._content_scroll.setWidget(placeholder)
 
     # --- accessors (used by tests / export) ---
 

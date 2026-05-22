@@ -7,6 +7,7 @@ from src.desktop.plots.heatmap_canvas import (
     HeatmapCanvas,
     colorscale_to_cmap,
     nearest_cell,
+    resolve_hover,
 )
 
 
@@ -42,6 +43,84 @@ def test_nearest_cell_out_of_bounds_returns_none():
 
 def test_nearest_cell_none_coords_returns_none():
     assert nearest_cell(None, None, 2, 2) is None
+
+
+def _grid():
+    # grid[x, y]; (1,0) is NaN to represent an interpolation gap.
+    return np.array([[1.0, 2.0], [np.nan, 4.0]])
+
+
+def test_resolve_hover_measured_point():
+    text = resolve_hover(
+        0.05, 0.0,
+        grid=_grid(),
+        hole_lookup={(0, 0): 1.5},
+        ref_value=None,
+        normalized=False,
+    )
+    assert text == "x=0, y=0\ng RMS=1.5000"
+
+
+def test_resolve_hover_interpolated_cell():
+    text = resolve_hover(
+        1.0, 1.0,
+        grid=_grid(),
+        hole_lookup={},
+        ref_value=None,
+        normalized=False,
+    )
+    assert text == "x=1, y=1\nInterpoliert (g RMS)=4.0000"
+
+
+def test_resolve_hover_nan_gap_returns_none():
+    # cell (1, 0) is NaN and not a measured hole.
+    assert resolve_hover(
+        1.0, 0.0, grid=_grid(), hole_lookup={}, ref_value=None, normalized=False,
+    ) is None
+
+
+def test_resolve_hover_out_of_bounds_returns_none():
+    assert resolve_hover(
+        5.0, 0.0, grid=_grid(), hole_lookup={}, ref_value=None, normalized=False,
+    ) is None
+    assert resolve_hover(
+        None, None, grid=_grid(), hole_lookup={}, ref_value=None, normalized=False,
+    ) is None
+
+
+def test_resolve_hover_reference_center_takes_priority():
+    # 2x2 grid -> center at (0.5, 0.5); ref_value present.
+    text = resolve_hover(
+        0.5, 0.5,
+        grid=_grid(),
+        hole_lookup={(0, 0): 1.5},
+        ref_value=0.8,
+        normalized=False,
+    )
+    assert text == "Referenz (Mitte)\ng RMS=0.8000"
+
+
+def test_resolve_hover_reference_none_falls_back_to_cell():
+    # Near center but no reference -> snaps to a cell instead.
+    text = resolve_hover(
+        0.4, 0.4,
+        grid=_grid(),
+        hole_lookup={(0, 0): 1.5},
+        ref_value=None,
+        normalized=False,
+    )
+    assert text == "x=0, y=0\ng RMS=1.5000"
+
+
+def test_resolve_hover_normalized_label():
+    text = resolve_hover(
+        1.0, 1.0,
+        grid=_grid(),
+        hole_lookup={},
+        ref_value=None,
+        normalized=True,
+    )
+    assert text == "x=1, y=1\nInterpoliert (Normalisiert)=4.0000"
 
 
 # --- canvas widget ---------------------------------------------------------
@@ -82,3 +161,30 @@ def test_heatmap_canvas_click_emits_holeclicked(qapp):
 
     canvas._on_click(_Evt())
     assert received == [("Platte 1", 1, 0)]
+
+
+def test_heatmap_canvas_motion_shows_tooltip(qapp):
+    canvas = HeatmapCanvas()
+    grid = np.array([[1.0, 2.0], [3.0, 4.0]])
+    canvas.render_grid(
+        grid, plate_name="Platte 1", title="t", colorscale="Viridis",
+        normalized=False, hole_positions=[(0, 0)], hole_values=[1.5],
+        ref_value=None, z_range=None,
+    )
+
+    class _Evt:
+        inaxes = canvas.axes
+        xdata = 0.0
+        ydata = 0.0
+
+    # Should not raise and should resolve the measured-hole tooltip text.
+    canvas._on_motion(_Evt())
+    assert canvas._last_hover == "x=0, y=0\ng RMS=1.5000"
+
+    class _OutEvt:
+        inaxes = None
+        xdata = None
+        ydata = None
+
+    canvas._on_motion(_OutEvt())
+    assert canvas._last_hover is None

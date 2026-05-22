@@ -32,8 +32,15 @@ def test_current_settings_defaults(qapp):
     assert s.interp_method == "linear"
     assert s.shared_scale is True
     assert s.histogram_bins == 20
+    assert s.histogram_stats is True
     assert s.colorscale == "Viridis"
     assert s.folders == []  # no paths entered yet
+
+
+def test_current_settings_reflects_histogram_stats_toggle(qapp):
+    panel = ControlPanel()
+    panel._histogram_stats.setChecked(False)
+    assert panel.current_settings().histogram_stats is False
 
 
 def test_current_settings_includes_entered_folder(qapp):

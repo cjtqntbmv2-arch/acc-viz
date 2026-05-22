@@ -59,6 +59,9 @@ class ControlPanel(QWidget):
         root.addWidget(QLabel(f"<b>{S.SIDEBAR_HEADER}</b>"))
 
         form = QFormLayout()
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapAllRows)
+        form.setVerticalSpacing(4)
+        form.setContentsMargins(0, 0, 0, 0)
         root.addLayout(form)
 
         # --- folder inputs ---
@@ -134,6 +137,13 @@ class ControlPanel(QWidget):
         self._bins.setToolTip(S.HELP_HISTOGRAM_BINS)
         self._bins.valueChanged.connect(self.settingsChanged)
         form.addRow(S.HISTOGRAM_BINS, self._bins)
+
+        # --- histogram statistics overlay ---
+        self._histogram_stats = QCheckBox(S.HISTOGRAM_STATS)
+        self._histogram_stats.setChecked(True)
+        self._histogram_stats.setToolTip(S.HELP_HISTOGRAM_STATS)
+        self._histogram_stats.toggled.connect(self.settingsChanged)
+        root.addWidget(self._histogram_stats)
 
         # --- shared scale ---
         self._shared_scale = QCheckBox(S.SHARED_SCALE)
@@ -267,5 +277,6 @@ class ControlPanel(QWidget):
             colorscale=self._colorscale.currentText(),
             interpolate=self._interpolate.isChecked(),
             histogram_bins=int(self._bins.value()),
+            histogram_stats=self._histogram_stats.isChecked(),
             interp_method=interp_method,
         )

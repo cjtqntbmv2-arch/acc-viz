@@ -23,6 +23,31 @@ def test_histogram_empty_input_renders_message(qapp):
     assert len(canvas.axes.texts) >= 1  # "no data" annotation
 
 
+def test_histogram_stats_overlay_draws_lines_and_legend(qapp):
+    canvas = HistogramCanvas()
+    values = np.array([1.0, 2.0, 2.0, 3.0, np.nan, 4.0])
+    canvas.render_values(values, bins=20, normalized=False, show_stats=True)
+    # mean, median, -1σ, +1σ → four vertical stat lines
+    assert len(canvas.axes.get_lines()) == 4
+    assert canvas.axes.get_legend() is not None
+
+
+def test_histogram_stats_overlay_off_by_default(qapp):
+    canvas = HistogramCanvas()
+    values = np.array([1.0, 2.0, 2.0, 3.0, 4.0])
+    canvas.render_values(values, bins=20, normalized=False)
+    assert len(canvas.axes.get_lines()) == 0
+    assert canvas.axes.get_legend() is None
+
+
+def test_histogram_stats_single_value_draws_no_sigma(qapp):
+    canvas = HistogramCanvas()
+    values = np.array([2.0, np.nan])
+    canvas.render_values(values, bins=20, normalized=False, show_stats=True)
+    # too few points for a meaningful spread → no stat lines, no raise
+    assert len(canvas.axes.get_lines()) == 0
+
+
 # --- spectrum --------------------------------------------------------------
 
 def _df():

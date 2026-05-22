@@ -80,6 +80,48 @@ def test_analyze_no_shared_scale_zrange_none(tmp_path):
     assert res.z_range is None
 
 
+def test_analyze_hist_range_uses_measured_values(tmp_path):
+    from tests.core.conftest import make_plate_folder
+    folder = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
+    out = load_plates([("Platte 1", str(folder))])
+    res = analyze(out.plates, _settings([("Platte 1", str(folder))], shared_scale=True))
+    measured = np.concatenate([g.ravel() for g in res.grids.values()])
+    measured = measured[np.isfinite(measured)]
+    assert res.hist_range == (float(measured.min()), float(measured.max()))
+
+
+def test_analyze_hist_range_ignores_interpolated_overshoot(tmp_path):
+    from tests.core.conftest import make_plate_folder
+    # Four small corner holes + a much larger reference. Interpolation injects the
+    # reference at the grid center, so the interpolated grid (and z_range) far
+    # exceeds the measured maximum — but the histogram range must reflect only
+    # the measured holes.
+    folder = make_plate_folder(
+        tmp_path / "p1",
+        {(0, 0): 1e-3, (0, 2): 1e-3, (2, 0): 1e-3, (2, 2): 1e-3},
+        ref_val=1.0,
+    )
+    out = load_plates([("Platte 1", str(folder))])
+    res = analyze(
+        out.plates,
+        _settings([("Platte 1", str(folder))], shared_scale=True, interpolate=True),
+    )
+    measured = np.concatenate([g.ravel() for g in res.grids.values()])
+    measured = measured[np.isfinite(measured)]
+    assert res.hist_range == (float(measured.min()), float(measured.max()))
+    # The reference anchor pulls z_range above the measured max; hist_range must not follow.
+    assert res.z_range is not None
+    assert res.z_range[1] > res.hist_range[1]
+
+
+def test_analyze_no_shared_scale_hist_range_none(tmp_path):
+    from tests.core.conftest import make_plate_folder
+    folder = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
+    out = load_plates([("Platte 1", str(folder))])
+    res = analyze(out.plates, _settings([("Platte 1", str(folder))], shared_scale=False))
+    assert res.hist_range is None
+
+
 def test_analyze_interpolate_false_keeps_nan_gaps(tmp_path):
     from tests.core.conftest import make_plate_folder
     # Two diagonal holes -> off-diagonal cells stay NaN when interpolation is off.

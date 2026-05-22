@@ -8,22 +8,30 @@ reference line marks the reference value.
 """
 
 import numpy as np
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
+from src.desktop.plots._canvas_base import ScrollPassthroughCanvas
 from src.ui import strings as S
 
 BAR_COLOR = "#4C78A8"
 REF_LINE_COLOR = (1, 1, 0, 0.9)
+MEAN_LINE_COLOR = "#D62728"
+MEDIAN_LINE_COLOR = "#2CA02C"
+SIGMA_LINE_COLOR = "#9467BD"
+
+# Floor height (px) so the plot keeps a readable size and the enclosing
+# QScrollArea scrolls instead of squeezing the canvas.
+_MIN_HEIGHT_PX = 250
 
 
-class HistogramCanvas(FigureCanvasQTAgg):
+class HistogramCanvas(ScrollPassthroughCanvas):
     """A matplotlib histogram of band-RMS values for one plate."""
 
     def __init__(self) -> None:
         self._figure = Figure(figsize=(5, 2.6), layout="constrained")
         super().__init__(self._figure)
         self.axes = self._figure.add_subplot(111)
+        self.setMinimumHeight(_MIN_HEIGHT_PX)
 
     def render_values(
         self,
@@ -33,6 +41,7 @@ class HistogramCanvas(FigureCanvasQTAgg):
         normalized: bool,
         ref_value: float | None = None,
         x_range: tuple[float, float] | None = None,
+        show_stats: bool = False,
     ) -> None:
         """Draw the histogram. Mirrors ``make_histogram`` semantics."""
         self._figure.clear()
@@ -62,6 +71,25 @@ class HistogramCanvas(FigureCanvasQTAgg):
 
         if ref_value is not None:
             self.axes.axvline(ref_value, color=REF_LINE_COLOR, linestyle="--", linewidth=2)
+
+        if show_stats and finite.size >= 2:
+            mean = float(np.mean(finite))
+            median = float(np.median(finite))
+            std = float(np.std(finite))
+            self.axes.axvline(
+                mean, color=MEAN_LINE_COLOR, linestyle="-", linewidth=2,
+                label=S.HISTOGRAM_STAT_MEAN.format(value=mean),
+            )
+            self.axes.axvline(
+                median, color=MEDIAN_LINE_COLOR, linestyle="--", linewidth=2,
+                label=S.HISTOGRAM_STAT_MEDIAN.format(value=median),
+            )
+            self.axes.axvline(mean - std, color=SIGMA_LINE_COLOR, linestyle=":", linewidth=1.5)
+            self.axes.axvline(
+                mean + std, color=SIGMA_LINE_COLOR, linestyle=":", linewidth=1.5,
+                label=S.HISTOGRAM_STAT_SIGMA.format(value=std),
+            )
+            self.axes.legend(loc="upper right", fontsize="small")
 
         self.axes.set_xlabel(S.HISTOGRAM_X_LABEL_TMPL.format(label=label))
         self.axes.set_ylabel(S.HISTOGRAM_Y_LABEL)

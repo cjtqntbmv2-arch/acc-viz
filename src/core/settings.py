@@ -41,6 +41,9 @@ class Settings:
         colorscale: Colorscale identifier selected by the user.
         histogram_bins: Upper bound on the histogram bin count. The actual
             bin count is capped at the number of measured holes.
+        histogram_stats: Whether to overlay mean, median, and ±1σ marker lines
+            on the per-plate histograms. Pure display flag — does not affect the
+            computed analysis.
     """
 
     folders: list[tuple[str, str]]  # (label, raw path)
@@ -52,6 +55,7 @@ class Settings:
     colorscale: str
     interpolate: bool = True
     histogram_bins: int = 20
+    histogram_stats: bool = True
     interp_method: InterpolationMethod = "linear"
 
 

@@ -11,14 +11,18 @@ per-axis lines and a bold summed line (plus optional summed reference).
 from typing import Literal
 
 import pandas as pd
-from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
 from matplotlib.figure import Figure
 
 from src.core.settings import Axis
+from src.desktop.plots._canvas_base import ScrollPassthroughCanvas
 from src.ui import strings as S
 
 _SINGLE_AXES: tuple[Literal["X", "Y", "Z"], ...] = ("X", "Y", "Z")
 _FLOOR = 1e-30
+
+# Floor height (px) so the plot keeps a readable size and the enclosing
+# QScrollArea scrolls instead of squeezing the canvas.
+_MIN_HEIGHT_PX = 300
 
 
 def _rss_sum(df: pd.DataFrame) -> pd.Series:
@@ -26,13 +30,14 @@ def _rss_sum(df: pd.DataFrame) -> pd.Series:
     return (df["PSD_X_g2Hz"] + df["PSD_Y_g2Hz"] + df["PSD_Z_g2Hz"]).clip(lower=_FLOOR)
 
 
-class SpectrumCanvas(FigureCanvasQTAgg):
+class SpectrumCanvas(ScrollPassthroughCanvas):
     """A matplotlib PSD spectrum plot for one hole."""
 
     def __init__(self) -> None:
         self._figure = Figure(figsize=(6, 3), layout="constrained")
         super().__init__(self._figure)
         self.axes = self._figure.add_subplot(111)
+        self.setMinimumHeight(_MIN_HEIGHT_PX)
 
     def render_spectrum(
         self,
