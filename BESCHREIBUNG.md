@@ -8,7 +8,7 @@ an Plattenbohrungen.
 - **Ordner pro Platte** (1–2 Platten parallel) mit:
   - **Lochmessungen**: CSV-Dateien `x{N}-y{M}.csv` (0-indizierte Koordinaten)
     - Spalten: `Frequenz_Hz`, `PSD_X_g2Hz`, `PSD_Y_g2Hz`, `PSD_Z_g2Hz`
-  - **Referenzmessung** (optional): `reference.csv` mit gleichem Schema
+  - **Referenzmessung** (optional): `Referenz.csv` mit gleichem Schema
 - **UI-Einstellungen** (Sidebar):
   - Frequenzband `[f_min, f_max]` in Hz
   - Achse: `X` / `Y` / `Z` / `RSS` (Root Sum of Squares)

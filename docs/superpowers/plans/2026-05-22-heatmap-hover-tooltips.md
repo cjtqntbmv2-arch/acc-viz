@@ -355,7 +355,7 @@ Run: `python3 desktop_main.py`
 Verify:
 - Over a white measured-point marker → `x=…, y=…` + measured g RMS value.
 - Over interpolated area (non-measured cell) → `x=…, y=…` + `Interpoliert (…)` value.
-- Over the center/star (when a `reference.csv` is present) → `Referenz (Mitte)` + reference value.
+- Over the center/star (when a `Referenz.csv` is present) → `Referenz (Mitte)` + reference value.
 - Over a NaN/gap cell or outside the grid → no tooltip.
 - Toggling "Normalisiert" changes the label in the tooltip from `g RMS` to `Normalisiert`.
 

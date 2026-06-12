@@ -85,7 +85,7 @@ Maus über Canvas → `_on_motion` → `resolve_hover` → `QToolTip`.
 
 - Cursor außerhalb Achse oder `xdata/ydata is None` → Tooltip aus.
 - NaN/maskierte Zelle → kein Tooltip (Parität zu `hoverongaps=False`).
-- `ref_value is None` (keine reference.csv) → kein Referenz-Tooltip; Mitte fällt auf
+- `ref_value is None` (keine Referenz.csv) → kein Referenz-Tooltip; Mitte fällt auf
   Messpunkt/interpolierte Logik zurück.
 - Gerade Grid-Dimensionen: Mitte liegt auf Halb-Koordinaten → Abstandsschwelle < 0.5 trifft
   trotzdem zuverlässig, da der Stern dort gezeichnet wird.

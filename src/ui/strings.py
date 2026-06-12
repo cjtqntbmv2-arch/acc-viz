@@ -67,7 +67,7 @@ WARN_NO_DATA_FOR_HOLE = "{name}: Keine Messdaten für Bohrung ({x}, {y})."
 HELP_FOLDER_PLATE = (
     "Ordner mit CSV-Messungen pro Bohrung: Dateinamen im Format "
     "x{N}-y{M}.csv, Spalten: Frequenz_Hz, PSD_X_g2Hz, PSD_Y_g2Hz, "
-    "PSD_Z_g2Hz. Optional eine reference.csv für die Referenzmessung."
+    "PSD_Z_g2Hz. Optional eine Referenz.csv für die Referenzmessung."
 )
 HELP_FREQUENCY_BAND = (
     "Frequenzbereich, über den der Band-RMS integriert wird. "
@@ -80,7 +80,7 @@ HELP_AXIS = (
 )
 HELP_NORMALIZE = (
     "Teilt jeden Bohrungs-RMS durch den Referenz-RMS derselben Platte. "
-    "Ergebnis dimensionslos, Referenz = 1,0. Erfordert reference.csv."
+    "Ergebnis dimensionslos, Referenz = 1,0. Erfordert Referenz.csv."
 )
 HELP_INTERPOLATE = (
     "Wenn deaktiviert, werden nur gemessene Zellen angezeigt; "
@@ -114,7 +114,7 @@ HELP_COLORSCALE = (
     "gleichmäßig (empfohlen), RdBu betont Abweichungen."
 )
 HELP_REF_METRIC = (
-    "RMS der Referenzmessung (reference.csv) im aktuellen "
+    "RMS der Referenzmessung (Referenz.csv) im aktuellen "
     "Frequenzband. Gelber Stern in der Heatmap markiert diese Stelle."
 )
 HELP_CSV_EXPORT = (

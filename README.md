@@ -7,6 +7,7 @@ Plattenbohrungen: Band-RMS-Heatmaps pro Platte, PSD-Spektrum-Drilldown,
 optionale Normalisierung und Interpolation, CSV-Export.
 
 Details zu Input-Format, Funktionsweise und Output: [BESCHREIBUNG.md](BESCHREIBUNG.md)
+Kurzbeschreibung und Anleitung der Desktop-App: [ANLEITUNG_DESKTOP.md](ANLEITUNG_DESKTOP.md)
 
 ## Start
 

@@ -4,6 +4,7 @@ on:
   push:
     branches: [master, main]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   test:
@@ -57,3 +58,4 @@ jobs:
             dist/acc_viz/**
             dist/acc_viz.app/**
           if-no-files-found: ignore
+          retention-days: 7
