@@ -50,12 +50,19 @@ jobs:
           pip install -r requirements.txt
       - name: Build bundle
         run: python packaging/build.py
+      # Bundle zu EINEM Archiv packen: zuvor wurden ~2047 Einzeldateien je OS
+      # hochgeladen, was das knappe Actions-Speicherkontingent gesprengt hat.
+      - name: Package bundle (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path dist/acc_viz/* -DestinationPath dist/acc_viz-windows.zip
+      - name: Package bundle (macOS)
+        if: runner.os == 'macOS'
+        run: cd dist && zip -r -q acc_viz-macos.zip acc_viz.app
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: acc_viz-${{ matrix.os }}
-          path: |
-            dist/acc_viz/**
-            dist/acc_viz.app/**
+          path: dist/acc_viz-*.zip
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 3
