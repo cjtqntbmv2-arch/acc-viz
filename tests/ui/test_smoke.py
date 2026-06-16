@@ -62,7 +62,7 @@ def test_app_histogram_uses_measured_hist_range_not_interpolated(tmp_path, monke
     # Erwartetes Ergebnis unabhängig von der App berechnen — mit den App-Defaults
     # (f_min=0, f_max=25000, axis=X, normalize off, interpolate+shared an).
     settings = Settings(
-        folders=[("Platte 1", str(folder))],
+        folders=(("Platte 1", str(folder)),),
         f_min=0, f_max=25000, axis="X", normalize=False,
         shared_scale=True, colorscale="Viridis", interpolate=True,
     )

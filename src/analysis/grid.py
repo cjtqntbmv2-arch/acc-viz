@@ -55,6 +55,6 @@ def build_grid(
 
     for (x, y), df in hole_data.items():
         rms = compute_band_rms(df, f_min, f_max, axis)
-        grid[x, y] = rms / ref_rms if use_norm else rms
+        grid[x, y] = rms / ref_rms if use_norm and ref_rms is not None else rms
 
     return grid

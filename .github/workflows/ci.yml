@@ -28,8 +28,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      - name: Type-check (pyright, informational)
-        continue-on-error: true
+      - name: Type-check (pyright)
         run: |
           pip install pyright==1.1.410
           pyright

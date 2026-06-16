@@ -38,7 +38,7 @@ def test_make_histogram_empty_input_returns_figure_without_bar():
     fig = make_histogram(values, bins=10, normalized=False)
     bar_traces = [t for t in fig.data if isinstance(t, go.Bar)]
     assert len(bar_traces) == 0
-    assert len(fig.layout.annotations) >= 1
+    assert len(fig.layout.annotations) >= 1  # type: ignore[reportAttributeAccessIssue]
 
 
 def test_make_histogram_single_value():
@@ -55,20 +55,20 @@ def test_make_histogram_axis_label_changes_with_normalized():
     values = np.array([1.0, 2.0, 3.0])
     fig_norm = make_histogram(values, bins=5, normalized=True)
     fig_abs = make_histogram(values, bins=5, normalized=False)
-    assert "Normalisiert" in fig_norm.layout.xaxis.title.text
-    assert "g RMS" in fig_abs.layout.xaxis.title.text
+    assert "Normalisiert" in fig_norm.layout.xaxis.title.text  # type: ignore[reportAttributeAccessIssue]
+    assert "g RMS" in fig_abs.layout.xaxis.title.text  # type: ignore[reportAttributeAccessIssue]
 
 
 def test_make_histogram_ref_value_adds_vline():
     values = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
     fig = make_histogram(values, bins=5, normalized=False, ref_value=1.0)
-    assert len(fig.layout.shapes) >= 1
+    assert len(fig.layout.shapes) >= 1  # type: ignore[reportAttributeAccessIssue]
 
 
 def test_make_histogram_x_range_applied():
     values = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
     fig = make_histogram(values, bins=5, normalized=False, x_range=(0.0, 5.0))
-    assert list(fig.layout.xaxis.range) == [0.0, 5.0]
+    assert list(fig.layout.xaxis.range) == [0.0, 5.0]  # type: ignore[reportAttributeAccessIssue]
 
 
 def test_make_histogram_integer_y_ticks_for_small_counts():
@@ -76,17 +76,17 @@ def test_make_histogram_integer_y_ticks_for_small_counts():
     values = np.array([1.0, 2.0, 3.0])
     assert len(values) <= _INTEGER_TICK_THRESHOLD
     fig = make_histogram(values, bins=3, normalized=False)
-    assert fig.layout.yaxis.dtick == 1
+    assert fig.layout.yaxis.dtick == 1  # type: ignore[reportAttributeAccessIssue]
 
 
 def test_make_histogram_show_stats_adds_stat_lines():
     values = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
     fig = make_histogram(values, bins=5, normalized=False, show_stats=True)
     # mean, median, -1σ, +1σ => mindestens 4 vertikale Linien (Shapes)
-    assert len(fig.layout.shapes) >= 4
+    assert len(fig.layout.shapes) >= 4  # type: ignore[reportAttributeAccessIssue]
 
 
 def test_make_histogram_show_stats_default_off():
     values = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
     fig = make_histogram(values, bins=5, normalized=False)
-    assert len(fig.layout.shapes) == 0
+    assert len(fig.layout.shapes) == 0  # type: ignore[reportAttributeAccessIssue]

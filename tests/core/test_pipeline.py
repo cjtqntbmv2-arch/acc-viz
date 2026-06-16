@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+from typing import Any
 
 import numpy as np
 
@@ -9,12 +10,12 @@ from src.core.settings import Settings
 
 
 def _settings(folders, **kw) -> Settings:
-    base = dict(
+    base: dict[str, Any] = dict(
         f_min=0, f_max=2, axis="X", normalize=False,
         shared_scale=True, colorscale="Viridis",
     )
     base.update(kw)
-    return Settings(folders=folders, **base)
+    return Settings(folders=tuple(folders), **base)
 
 
 # --- load_plates -----------------------------------------------------------
@@ -111,6 +112,7 @@ def test_analyze_hist_range_ignores_interpolated_overshoot(tmp_path):
     assert res.hist_range == (float(measured.min()), float(measured.max()))
     # The reference anchor pulls z_range above the measured max; hist_range must not follow.
     assert res.z_range is not None
+    assert res.hist_range is not None
     assert res.z_range[1] > res.hist_range[1]
 
 

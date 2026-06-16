@@ -6,7 +6,7 @@ from src.core.settings import Axis, Settings
 
 
 def test_settings_importable_from_core():
-    s = Settings(folders=[("Platte 1", "/a")], f_min=0, f_max=25000,
+    s = Settings(folders=(("Platte 1", "/a"),), f_min=0, f_max=25000,
                  axis="X", normalize=False, shared_scale=True, colorscale="Viridis")
     assert s.f_min == 0
     assert s.interpolate is True
@@ -15,7 +15,7 @@ def test_settings_importable_from_core():
 
 
 def test_settings_is_frozen():
-    s = Settings(folders=[("Platte 1", "/a")], f_min=0, f_max=25000,
+    s = Settings(folders=(("Platte 1", "/a"),), f_min=0, f_max=25000,
                  axis="X", normalize=False, shared_scale=True, colorscale="Viridis")
     try:
         s.f_min = 100  # type: ignore[misc]
