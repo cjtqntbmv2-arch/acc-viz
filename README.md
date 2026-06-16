@@ -1,4 +1,4 @@
-![version](https://img.shields.io/badge/version-0.3.1-blue)
+![version](https://img.shields.io/badge/version-0.4.0-blue)
 
 # acc_visualisation
 
