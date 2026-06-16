@@ -10,6 +10,10 @@ import pandas as pd
 
 Axis = Literal["X", "Y", "Z", "RSS"]
 
+# ``np.trapezoid`` existiert erst ab numpy 2.0; in 1.26 heißt die Funktion
+# ``np.trapz``. Einmal auflösen, damit der Rechenkern auf beiden Versionen läuft.
+_trapezoid = getattr(np, "trapezoid", None) or getattr(np, "trapz")
+
 
 def _integrand_series(df: pd.DataFrame, axis: Axis) -> pd.Series:
     """Return the PSD series to integrate for the requested axis.
@@ -81,5 +85,5 @@ def compute_band_rms(
     if len(sub) < 2:
         return math.nan
     return float(
-        np.sqrt(np.trapezoid(sub["integrand"].to_numpy(), sub["Frequenz_Hz"].to_numpy()))
+        np.sqrt(_trapezoid(sub["integrand"].to_numpy(), sub["Frequenz_Hz"].to_numpy()))
     )
