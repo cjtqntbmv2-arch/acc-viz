@@ -23,6 +23,7 @@ project_root = Path(SPECPATH).parent.resolve()
 added_files = [
     (str(project_root / "desktop_main.py"), "."),
     (str(project_root / "src"), "src"),
+    (str(project_root / "ANLEITUNG_DESKTOP.md"), "."),
 ]
 added_files += mpl_datas
 
