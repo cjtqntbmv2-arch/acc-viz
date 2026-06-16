@@ -20,6 +20,7 @@ def make_histogram(
     normalized: bool,
     ref_value: float | None = None,
     x_range: tuple[float, float] | None = None,
+    show_stats: bool = False,
 ) -> go.Figure:
     """Build a Plotly histogram of band-RMS values for a single plate.
 
@@ -83,6 +84,24 @@ def make_histogram(
         fig.add_vline(
             x=ref_value,
             line=dict(color=REF_LINE_COLOR, dash="dash", width=2),
+        )
+
+    if show_stats and finite.size >= 2:
+        mean = float(np.mean(finite))
+        median = float(np.median(finite))
+        std = float(np.std(finite))
+        fig.add_vline(
+            x=mean, line=dict(color="#D62728", width=2),
+            annotation_text=S.HISTOGRAM_STAT_MEAN.format(value=mean),
+        )
+        fig.add_vline(
+            x=median, line=dict(color="#2CA02C", dash="dash", width=2),
+            annotation_text=S.HISTOGRAM_STAT_MEDIAN.format(value=median),
+        )
+        fig.add_vline(x=mean - std, line=dict(color="#9467BD", dash="dot", width=1.5))
+        fig.add_vline(
+            x=mean + std, line=dict(color="#9467BD", dash="dot", width=1.5),
+            annotation_text=S.HISTOGRAM_STAT_SIGMA.format(value=std),
         )
 
     fig.update_layout(

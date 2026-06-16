@@ -93,6 +93,7 @@ for col, name in zip(cols, plates.keys()):
             normalized=settings.normalize,
             ref_value=marker,
             x_range=hist_range if settings.shared_scale else None,
+            show_stats=settings.histogram_stats,
         )
         st.plotly_chart(hist_fig, use_container_width=True, key=f"hist_{name}")
 
