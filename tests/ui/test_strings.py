@@ -29,3 +29,12 @@ def test_required_strings_exist():
 
 def test_error_path_format_has_placeholder():
     assert "{path}" in S.ERROR_PATH_NOT_FOUND
+
+
+def test_manual_strings_present():
+    from src.ui import strings as S
+
+    assert S.MENU_HELP == "Hilfe"
+    assert S.MENU_HELP_MANUAL == "Anleitung"
+    assert S.MANUAL_DIALOG_TITLE
+    assert S.MANUAL_LOAD_ERROR

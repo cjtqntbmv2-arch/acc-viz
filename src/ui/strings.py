@@ -128,3 +128,9 @@ CAPTION_HEATMAP_LEGEND = (
     "Weiße Kreise = gemessene Bohrungen (anklickbar für Spektrum). "
     "Gelber Stern = Referenzwert in Plattenmitte."
 )
+
+# --- Hilfe-Menü / Anleitungs-Dialog ---
+MENU_HELP = "Hilfe"
+MENU_HELP_MANUAL = "Anleitung"
+MANUAL_DIALOG_TITLE = "Anleitung — Beschleunigungs-Visualisierung"
+MANUAL_LOAD_ERROR = "Anleitung konnte nicht geladen werden."
