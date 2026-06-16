@@ -33,6 +33,7 @@ from src.core.pipeline import (
 from src.core.settings import Settings
 from src.desktop.control_panel import ControlPanel
 from src.desktop.export import prompt_export
+from src.desktop.manual_dialog import ManualDialog
 from src.desktop.plots.heatmap_canvas import HeatmapCanvas
 from src.desktop.plots.histogram_canvas import HistogramCanvas
 from src.desktop.plots.spectrum_canvas import SpectrumCanvas
@@ -80,6 +81,12 @@ class MainWindow(QMainWindow):
         self._export_action.setEnabled(False)
         self._export_action.triggered.connect(self._export)
         toolbar.addAction(self._export_action)
+
+        # Menüleiste mit Hilfe-Menü.
+        help_menu = self.menuBar().addMenu(S.MENU_HELP)
+        self._manual_action = QAction(S.MENU_HELP_MANUAL, self)
+        self._manual_action.triggered.connect(self._show_manual)
+        help_menu.addAction(self._manual_action)
 
         # Latest computed state, kept so other actions (e.g. export) can reuse it.
         self._settings: Settings | None = None
@@ -172,6 +179,10 @@ class MainWindow(QMainWindow):
         )
         if path:
             self.statusBar().showMessage(f"{S.CSV_EXPORT}: {path}", 8000)
+
+    def _show_manual(self) -> None:
+        """Open the modal manual dialog."""
+        ManualDialog(self).exec()
 
     # --- rendering ---
 

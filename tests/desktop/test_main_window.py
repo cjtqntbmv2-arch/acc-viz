@@ -36,3 +36,31 @@ def test_refresh_resets_override_cursor(qapp, tmp_path):
     win.control_panel.set_folder(0, str(folder))
     # Nach dem (synchronen) Refresh darf kein Override-Cursor hängen bleiben.
     assert QApplication.overrideCursor() is None
+
+
+def test_help_menu_has_manual_action(qapp):
+    from src.ui import strings as S
+
+    win = MainWindow()
+    menu_titles = [a.text() for a in win.menuBar().actions()]
+    assert S.MENU_HELP in menu_titles
+    assert win._manual_action.text() == S.MENU_HELP_MANUAL
+
+
+def test_show_manual_opens_dialog(qapp, monkeypatch):
+    from src.desktop import main_window as mw
+
+    created = {}
+
+    class FakeDialog:
+        def __init__(self, parent):
+            created["parent"] = parent
+
+        def exec(self):
+            created["exec"] = True
+            return 0
+
+    monkeypatch.setattr(mw, "ManualDialog", FakeDialog)
+    win = MainWindow()
+    win._manual_action.trigger()
+    assert created.get("exec") is True
