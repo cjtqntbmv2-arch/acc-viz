@@ -8,21 +8,11 @@ Run with ``python desktop_main.py``. This replaces the Streamlit web app
 
 import sys
 
-from src.logging_setup import get_logger
-
-_LOG = get_logger(__name__)
+from src.desktop.app_runner import run_app
 
 
 def main() -> int:
-    from PySide6.QtWidgets import QApplication
-
-    from src.desktop.main_window import MainWindow
-
-    app = QApplication.instance() or QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    _LOG.info("Desktop app started")
-    return app.exec()
+    return run_app(sys.argv)
 
 
 if __name__ == "__main__":
