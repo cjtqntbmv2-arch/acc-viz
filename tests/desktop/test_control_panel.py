@@ -34,7 +34,7 @@ def test_current_settings_defaults(qapp):
     assert s.histogram_bins == 20
     assert s.histogram_stats is True
     assert s.colorscale == "Viridis"
-    assert s.folders == []  # no paths entered yet
+    assert s.folders == ()  # no paths entered yet
 
 
 def test_current_settings_reflects_histogram_stats_toggle(qapp):

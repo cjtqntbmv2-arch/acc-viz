@@ -9,7 +9,7 @@ Streamlit / Qt imports here on purpose.
 
 import math
 from collections import OrderedDict
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -111,7 +111,7 @@ def _cached_load(folder: str) -> LoadResult:
     return result
 
 
-def load_plates(folders: list[tuple[str, str]]) -> PlateLoad:
+def load_plates(folders: Sequence[tuple[str, str]]) -> PlateLoad:
     """Load every plate folder, collecting warnings and user-facing errors.
 
     Mirrors the original Streamlit load loop: each folder is loaded (with

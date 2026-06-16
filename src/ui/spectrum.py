@@ -32,8 +32,8 @@ def _add_single_axis_traces(
         hole_df: Measurement DataFrame for the selected hole.
         ref_df: Optional reference measurement DataFrame.
         axis: Single axis whose PSD column is plotted.
-        x_hole: 1-indexed x coordinate of the hole (for the legend label).
-        y_hole: 1-indexed y coordinate of the hole (for the legend label).
+        x_hole: 0-indexed x coordinate of the hole (for the legend label).
+        y_hole: 0-indexed y coordinate of the hole (for the legend label).
     """
     col_psd = f"PSD_{axis}_g2Hz"
     y_series = hole_df[col_psd].clip(lower=1e-30)
@@ -138,8 +138,8 @@ def render_spectrum(
 
     Args:
         plate_name: Plate label used in the chart title.
-        x_hole: 1-indexed x coordinate of the hole.
-        y_hole: 1-indexed y coordinate of the hole.
+        x_hole: 0-indexed x coordinate of the hole.
+        y_hole: 0-indexed y coordinate of the hole.
         axis: Axis whose PSD is plotted; ``"RSS"`` triggers the summed view.
         hole_df: Measurement DataFrame for the selected hole.
         ref_df: Optional reference measurement DataFrame.

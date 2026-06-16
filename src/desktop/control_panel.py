@@ -282,7 +282,7 @@ class ControlPanel(QWidget):
         )
 
         return Settings(
-            folders=folders,
+            folders=tuple(folders),
             f_min=int(self._f_min.value()),
             f_max=int(self._f_max.value()),
             axis=axis,
