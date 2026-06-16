@@ -20,6 +20,7 @@ COLORSCALE = "Farbskala"
 CSV_EXPORT = "CSV exportieren"
 
 LOADING_PLATE = "Lade {label} …"
+ANALYZING = "Analyse läuft …"
 WAITING_FOR_FOLDER = "Bitte mindestens einen Ordnerpfad eingeben."
 
 ERROR_PATH_NOT_FOUND = "Pfad existiert nicht: {path}"

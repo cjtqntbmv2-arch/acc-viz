@@ -42,7 +42,8 @@ if not plates:
     # Nothing usable loaded — show the errors above and halt.
     st.stop()
 
-result = analyze(plates, settings)
+with st.spinner(S.ANALYZING):
+    result = analyze(plates, settings)
 grids = result.grids
 interp_grids = result.interp_grids
 ref_rms = result.ref_rms
