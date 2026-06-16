@@ -47,6 +47,20 @@ def make_heatmap(
     nrows, ncols = grid.shape
     label = S.COLORBAR_NORMALIZED if normalized else S.COLORBAR_ABSOLUTE
 
+    if not np.isfinite(grid).any():
+        fig = go.Figure()
+        fig.add_annotation(
+            text=S.HEATMAP_EMPTY,
+            xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False,
+        )
+        fig.update_layout(
+            title=title,
+            height=HEATMAP_HEIGHT,
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+        )
+        return fig
+
     fig = go.Figure(
         go.Heatmap(
             z=grid.T,
