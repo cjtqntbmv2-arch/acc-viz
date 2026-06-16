@@ -29,12 +29,12 @@ def make_heatmap(
     — a yellow star at the geometric center representing the reference value.
 
     Args:
-        grid: 2D array of interpolated values with shape ``(max_x, max_y)``.
+        grid: 2D array of interpolated values with shape ``(max_x + 1, max_y + 1)``.
         title: Figure title.
         colorscale: Plotly colorscale identifier (e.g. ``"Viridis"``).
         normalized: If true, label the colorbar as normalized; otherwise as
             absolute g RMS.
-        hole_positions: 1-indexed ``(x, y)`` positions for measured holes.
+        hole_positions: 0-indexed ``(x, y)`` positions for measured holes.
         hole_values: Displayed values for the hole markers, aligned with
             ``hole_positions``.
         ref_value: Optional reference value rendered at the grid center.
@@ -46,6 +46,20 @@ def make_heatmap(
     """
     nrows, ncols = grid.shape
     label = S.COLORBAR_NORMALIZED if normalized else S.COLORBAR_ABSOLUTE
+
+    if not np.isfinite(grid).any():
+        fig = go.Figure()
+        fig.add_annotation(
+            text=S.HEATMAP_EMPTY,
+            xref="paper", yref="paper", x=0.5, y=0.5, showarrow=False,
+        )
+        fig.update_layout(
+            title=title,
+            height=HEATMAP_HEIGHT,
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+        )
+        return fig
 
     fig = go.Figure(
         go.Heatmap(

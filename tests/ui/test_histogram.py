@@ -77,3 +77,16 @@ def test_make_histogram_integer_y_ticks_for_small_counts():
     assert len(values) <= _INTEGER_TICK_THRESHOLD
     fig = make_histogram(values, bins=3, normalized=False)
     assert fig.layout.yaxis.dtick == 1
+
+
+def test_make_histogram_show_stats_adds_stat_lines():
+    values = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    fig = make_histogram(values, bins=5, normalized=False, show_stats=True)
+    # mean, median, -1σ, +1σ => mindestens 4 vertikale Linien (Shapes)
+    assert len(fig.layout.shapes) >= 4
+
+
+def test_make_histogram_show_stats_default_off():
+    values = np.array([1.0, 2.0, 3.0, 4.0, 5.0])
+    fig = make_histogram(values, bins=5, normalized=False)
+    assert len(fig.layout.shapes) == 0

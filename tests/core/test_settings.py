@@ -35,3 +35,21 @@ def test_sidebar_reexports_core_settings():
 
     assert SidebarSettings is Settings
     assert SidebarAxis is Axis
+
+
+def test_settings_folders_is_tuple_and_hashable_value():
+    from src.core.settings import Settings
+
+    s = Settings(
+        folders=(("Platte 1", "/a"),),
+        f_min=0, f_max=10, axis="X", normalize=False,
+        shared_scale=True, colorscale="Viridis",
+    )
+    assert isinstance(s.folders, tuple)
+    # Gleichheit bleibt strukturell (Caching-Vergleich im Desktop hängt daran).
+    s2 = Settings(
+        folders=(("Platte 1", "/a"),),
+        f_min=0, f_max=10, axis="X", normalize=False,
+        shared_scale=True, colorscale="Viridis",
+    )
+    assert s == s2

@@ -42,11 +42,13 @@ if not plates:
     # Nothing usable loaded — show the errors above and halt.
     st.stop()
 
-result = analyze(plates, settings)
+with st.spinner(S.ANALYZING):
+    result = analyze(plates, settings)
 grids = result.grids
 interp_grids = result.interp_grids
 ref_rms = result.ref_rms
 z_range = result.z_range
+hist_range = result.hist_range
 
 cols = st.columns(len(plates))
 click_state: dict[str, tuple[int, int] | None] = {}
@@ -91,7 +93,8 @@ for col, name in zip(cols, plates.keys()):
             bins=settings.histogram_bins,
             normalized=settings.normalize,
             ref_value=marker,
-            x_range=z_range if settings.shared_scale else None,
+            x_range=hist_range if settings.shared_scale else None,
+            show_stats=settings.histogram_stats,
         )
         st.plotly_chart(hist_fig, use_container_width=True, key=f"hist_{name}")
 

@@ -63,8 +63,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
-    )
+    from src.logging_setup import configure_logging
+
+    configure_logging()
     main()

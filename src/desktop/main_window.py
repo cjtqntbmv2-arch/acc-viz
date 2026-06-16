@@ -135,7 +135,16 @@ class MainWindow(QMainWindow):
         )
         analysis = self._analysis
         if compute_changed or analysis is None:
-            analysis = analyze(load.plates, settings)
+            from PySide6.QtCore import Qt
+            from PySide6.QtWidgets import QApplication
+
+            QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
+            # Cursor sofort zeichnen, bevor der synchrone analyze()-Aufruf blockiert.
+            QApplication.processEvents()
+            try:
+                analysis = analyze(load.plates, settings)
+            finally:
+                QApplication.restoreOverrideCursor()
             self._analysis = analysis
 
         self._export_action.setEnabled(True)

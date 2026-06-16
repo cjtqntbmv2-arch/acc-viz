@@ -164,6 +164,20 @@ class HeatmapCanvas(ScrollPassthroughCanvas):
         self._normalized = normalized
         nrows, ncols = grid.shape
 
+        if not np.isfinite(grid).any():
+            self._figure.clear()
+            self.axes = self._figure.add_subplot(111)
+            self._colorbar = None  # alte Colorbar-Referenz nicht hängen lassen
+            self.axes.text(
+                0.5, 0.5, S.HEATMAP_EMPTY,
+                ha="center", va="center", transform=self.axes.transAxes,
+            )
+            self.axes.set_xticks([])
+            self.axes.set_yticks([])
+            self.axes.set_title(title)
+            self.draw_idle()
+            return
+
         self._figure.clear()
         # Empty left column (same width as the colorbar column) balances the
         # colorbar so the square plot is centered in the canvas.

@@ -8,6 +8,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from src.analysis.rms import rss_series
 from src.ui import strings as S
 
 SPECTRUM_HEIGHT = 350
@@ -31,8 +32,8 @@ def _add_single_axis_traces(
         hole_df: Measurement DataFrame for the selected hole.
         ref_df: Optional reference measurement DataFrame.
         axis: Single axis whose PSD column is plotted.
-        x_hole: 1-indexed x coordinate of the hole (for the legend label).
-        y_hole: 1-indexed y coordinate of the hole (for the legend label).
+        x_hole: 0-indexed x coordinate of the hole (for the legend label).
+        y_hole: 0-indexed y coordinate of the hole (for the legend label).
     """
     col_psd = f"PSD_{axis}_g2Hz"
     y_series = hole_df[col_psd].clip(lower=1e-30)
@@ -87,9 +88,7 @@ def _add_rss_traces(
             )
         )
 
-    sum_series = (
-        hole_df["PSD_X_g2Hz"] + hole_df["PSD_Y_g2Hz"] + hole_df["PSD_Z_g2Hz"]
-    ).clip(lower=1e-30)
+    sum_series = rss_series(hole_df).clip(lower=1e-30)
     fig.add_trace(
         go.Scatter(
             x=hole_df["Frequenz_Hz"],
@@ -100,9 +99,7 @@ def _add_rss_traces(
     )
 
     if ref_df is not None:
-        ref_sum = (
-            ref_df["PSD_X_g2Hz"] + ref_df["PSD_Y_g2Hz"] + ref_df["PSD_Z_g2Hz"]
-        ).clip(lower=1e-30)
+        ref_sum = rss_series(ref_df).clip(lower=1e-30)
         fig.add_trace(
             go.Scatter(
                 x=ref_df["Frequenz_Hz"],
@@ -141,8 +138,8 @@ def render_spectrum(
 
     Args:
         plate_name: Plate label used in the chart title.
-        x_hole: 1-indexed x coordinate of the hole.
-        y_hole: 1-indexed y coordinate of the hole.
+        x_hole: 0-indexed x coordinate of the hole.
+        y_hole: 0-indexed y coordinate of the hole.
         axis: Axis whose PSD is plotted; ``"RSS"`` triggers the summed view.
         hole_df: Measurement DataFrame for the selected hole.
         ref_df: Optional reference measurement DataFrame.

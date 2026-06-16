@@ -188,3 +188,21 @@ def test_heatmap_canvas_motion_shows_tooltip(qapp):
 
     canvas._on_motion(_OutEvt())
     assert canvas._last_hover is None
+
+
+def test_render_grid_all_nan_shows_empty_text(qapp):
+    canvas = HeatmapCanvas()
+    grid = np.full((3, 3), np.nan)
+    canvas.render_grid(
+        grid,
+        plate_name="P1",
+        title="P1",
+        colorscale="Viridis",
+        normalized=False,
+        hole_positions=[],
+        hole_values=[],
+        ref_value=None,
+        z_range=None,
+    )
+    texts = [t.get_text() for t in canvas.axes.texts]
+    assert any("Frequenzband" in t for t in texts)

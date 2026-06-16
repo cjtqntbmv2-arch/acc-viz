@@ -37,6 +37,7 @@ __all__ = ["ControlPanel", "normalize_path"]
 # Qt dynamic-property keys backing the radio buttons.
 _AXIS_PROP = "axis_value"
 _METHOD_PROP = "method_value"
+_FREQ_STEP = 100  # Hz; Mindestabstand zwischen f_min und f_max
 
 _FOLDER_DISPLAY_LABELS: tuple[str, str] = (S.FOLDER_PLATE_1, S.FOLDER_PLATE_2)
 
@@ -211,19 +212,32 @@ class ControlPanel(QWidget):
             self._folder_edits[idx].setText(path)
 
     def _on_f_min_changed(self, value: int) -> None:
-        # Keep f_max >= f_min. Block signals during the clamp so we emit exactly
-        # one settingsChanged for the user's single edit.
-        if value > self._f_max.value():
-            self._f_max.blockSignals(True)
-            self._f_max.setValue(value)
-            self._f_max.blockSignals(False)
+        # f_max muss strikt größer bleiben. Signale während des Clamps blocken,
+        # damit pro Nutzer-Edit genau ein settingsChanged ausgelöst wird.
+        if value >= self._f_max.value():
+            target = value + _FREQ_STEP
+            if target <= self._f_max.maximum():
+                self._f_max.blockSignals(True)
+                self._f_max.setValue(target)
+                self._f_max.blockSignals(False)
+            else:
+                # f_max am Anschlag: f_min unter f_max ziehen.
+                self._f_min.blockSignals(True)
+                self._f_min.setValue(self._f_max.value() - _FREQ_STEP)
+                self._f_min.blockSignals(False)
         self.settingsChanged.emit()
 
     def _on_f_max_changed(self, value: int) -> None:
-        if value < self._f_min.value():
-            self._f_min.blockSignals(True)
-            self._f_min.setValue(value)
-            self._f_min.blockSignals(False)
+        if value <= self._f_min.value():
+            target = value - _FREQ_STEP
+            if target >= self._f_min.minimum():
+                self._f_min.blockSignals(True)
+                self._f_min.setValue(target)
+                self._f_min.blockSignals(False)
+            else:
+                self._f_max.blockSignals(True)
+                self._f_max.setValue(self._f_min.value() + _FREQ_STEP)
+                self._f_max.blockSignals(False)
         self.settingsChanged.emit()
 
     def _on_interpolate_toggled(self, checked: bool) -> None:
@@ -268,7 +282,7 @@ class ControlPanel(QWidget):
         )
 
         return Settings(
-            folders=folders,
+            folders=tuple(folders),
             f_min=int(self._f_min.value()),
             f_max=int(self._f_max.value()),
             axis=axis,

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import numpy as np
 import pandas as pd
 from src.analysis.rms import compute_band_rms
 
@@ -85,3 +86,28 @@ def test_compute_band_rms_rss_equals_sum_of_axis_squares():
     rmz = compute_band_rms(df, 1.0, 3.0, "Z")
     rss = compute_band_rms(df, 1.0, 3.0, "RSS")
     assert math.isclose(rss, math.sqrt(rmx**2 + rmy**2 + rmz**2), rel_tol=1e-6)
+
+
+def test_trapezoid_shim_resolves_and_integrates():
+    # Der Shim muss unabhängig von der numpy-Version eine integrierbare Callable sein.
+    from src.analysis.rms import _trapezoid
+
+    y = np.array([1.0, 1.0, 1.0])
+    x = np.array([0.0, 1.0, 2.0])
+    # Integral einer konstanten 1 über [0, 2] = 2.0
+    assert _trapezoid(y, x) == 2.0
+
+
+def test_rss_series_sums_three_axes():
+    import pandas as pd
+
+    from src.analysis.rms import rss_series
+
+    df = pd.DataFrame({
+        "Frequenz_Hz": [0.0, 1.0],
+        "PSD_X_g2Hz": [1.0, 2.0],
+        "PSD_Y_g2Hz": [3.0, 4.0],
+        "PSD_Z_g2Hz": [5.0, 6.0],
+    })
+    result = rss_series(df)
+    assert list(result) == [9.0, 12.0]

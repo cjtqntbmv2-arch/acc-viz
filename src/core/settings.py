@@ -19,7 +19,7 @@ class Settings:
     """Immutable snapshot of all user-selected analysis settings.
 
     Attributes:
-        folders: List of ``(label, raw_path)`` tuples for every non-empty
+        folders: Tuple of ``(label, raw_path)`` tuples for every non-empty
             folder input the user provided.
         f_min: Lower bound of the selected frequency band in Hz.
         f_max: Upper bound of the selected frequency band in Hz.
@@ -46,7 +46,7 @@ class Settings:
             computed analysis.
     """
 
-    folders: list[tuple[str, str]]  # (label, raw path)
+    folders: tuple[tuple[str, str], ...]  # (label, raw path)
     f_min: int
     f_max: int
     axis: Axis

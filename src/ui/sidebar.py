@@ -107,7 +107,7 @@ def render_sidebar() -> Settings:
         folders.append(("Platte 2", p2))
 
     return Settings(
-        folders=folders,
+        folders=tuple(folders),
         f_min=int(f_min),
         f_max=int(f_max),
         axis=axis,

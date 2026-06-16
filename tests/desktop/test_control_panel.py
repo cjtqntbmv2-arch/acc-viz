@@ -34,7 +34,7 @@ def test_current_settings_defaults(qapp):
     assert s.histogram_bins == 20
     assert s.histogram_stats is True
     assert s.colorscale == "Viridis"
-    assert s.folders == []  # no paths entered yet
+    assert s.folders == ()  # no paths entered yet
 
 
 def test_current_settings_reflects_histogram_stats_toggle(qapp):
@@ -68,3 +68,20 @@ def test_settings_changed_signal_emitted_on_axis_change(qapp):
     panel.settingsChanged.connect(lambda: received.append(True))
     panel.set_axis("Y")
     assert received, "settingsChanged should fire when a control changes"
+
+
+def test_f_min_pushes_f_max_to_keep_strict_order(qapp):
+    panel = ControlPanel()
+    panel.set_frequency_band(0, 1000)
+    panel._f_min.setValue(1000)  # gleich f_max -> muss f_max hochschieben
+    s = panel.current_settings()
+    assert s.f_max > s.f_min
+
+
+def test_f_min_at_ceiling_pulls_itself_below_max(qapp):
+    panel = ControlPanel()
+    panel._f_max.setValue(25000)
+    panel._f_min.setValue(25000)  # am Anschlag -> f_min muss unter f_max rutschen
+    s = panel.current_settings()
+    assert s.f_min < s.f_max
+    assert s.f_max == 25000
