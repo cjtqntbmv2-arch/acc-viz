@@ -16,3 +16,15 @@ def test_load_manual_text_returns_nonempty():
     text = resources.load_manual_text()
     assert isinstance(text, str)
     assert text.strip()
+
+
+def test_manual_contains_required_sections():
+    text = resources.load_manual_text()
+    for marker in (
+        "Quick Guide",
+        "Workflow",
+        "Funktionsreferenz",
+        "Frequenzband",
+        "CSV exportieren",
+    ):
+        assert marker in text, marker
