@@ -96,3 +96,18 @@ def test_trapezoid_shim_resolves_and_integrates():
     x = np.array([0.0, 1.0, 2.0])
     # Integral einer konstanten 1 über [0, 2] = 2.0
     assert _trapezoid(y, x) == 2.0
+
+
+def test_rss_series_sums_three_axes():
+    import pandas as pd
+
+    from src.analysis.rms import rss_series
+
+    df = pd.DataFrame({
+        "Frequenz_Hz": [0.0, 1.0],
+        "PSD_X_g2Hz": [1.0, 2.0],
+        "PSD_Y_g2Hz": [3.0, 4.0],
+        "PSD_Z_g2Hz": [5.0, 6.0],
+    })
+    result = rss_series(df)
+    assert list(result) == [9.0, 12.0]

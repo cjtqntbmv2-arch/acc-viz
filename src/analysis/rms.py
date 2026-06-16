@@ -3,7 +3,7 @@ from __future__ import annotations
 """Band-limited RMS computation from power spectral density data."""
 
 import math
-from typing import Literal
+from typing import Literal, cast
 
 import numpy as np
 import pandas as pd
@@ -13,6 +13,11 @@ Axis = Literal["X", "Y", "Z", "RSS"]
 # ``np.trapezoid`` existiert erst ab numpy 2.0; in 1.26 heißt die Funktion
 # ``np.trapz``. Einmal auflösen, damit der Rechenkern auf beiden Versionen läuft.
 _trapezoid = getattr(np, "trapezoid", None) or getattr(np, "trapz")
+
+
+def rss_series(df: pd.DataFrame) -> pd.Series:
+    """Per-frequency sum ``PSD_X + PSD_Y + PSD_Z`` (vor Clipping/Integration)."""
+    return df["PSD_X_g2Hz"] + df["PSD_Y_g2Hz"] + df["PSD_Z_g2Hz"]
 
 
 def _integrand_series(df: pd.DataFrame, axis: Axis) -> pd.Series:
@@ -33,8 +38,8 @@ def _integrand_series(df: pd.DataFrame, axis: Axis) -> pd.Series:
         A ``pd.Series`` aligned with ``df`` holding the integrand values.
     """
     if axis == "RSS":
-        return df["PSD_X_g2Hz"] + df["PSD_Y_g2Hz"] + df["PSD_Z_g2Hz"]
-    return df[f"PSD_{axis}_g2Hz"]
+        return rss_series(df)
+    return cast(pd.Series, df[f"PSD_{axis}_g2Hz"])
 
 
 def compute_band_rms(

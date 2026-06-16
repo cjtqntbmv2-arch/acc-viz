@@ -13,6 +13,7 @@ from typing import Literal
 import pandas as pd
 from matplotlib.figure import Figure
 
+from src.analysis.rms import rss_series
 from src.core.settings import Axis
 from src.desktop.plots._canvas_base import ScrollPassthroughCanvas
 from src.ui import strings as S
@@ -27,7 +28,7 @@ _MIN_HEIGHT_PX = 300
 
 def _rss_sum(df: pd.DataFrame) -> pd.Series:
     """Per-frequency sum of the three axis PSDs, floored for the log y-axis."""
-    return (df["PSD_X_g2Hz"] + df["PSD_Y_g2Hz"] + df["PSD_Z_g2Hz"]).clip(lower=_FLOOR)
+    return rss_series(df).clip(lower=_FLOOR)
 
 
 class SpectrumCanvas(ScrollPassthroughCanvas):
