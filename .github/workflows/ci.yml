@@ -34,11 +34,7 @@ jobs:
 
   build:
     needs: test
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -50,19 +46,14 @@ jobs:
           pip install -r requirements.txt
       - name: Build bundle
         run: python packaging/build.py
-      # Bundle zu EINEM Archiv packen: zuvor wurden ~2047 Einzeldateien je OS
-      # hochgeladen, was das knappe Actions-Speicherkontingent gesprengt hat.
-      - name: Package bundle (Windows)
-        if: runner.os == 'Windows'
+      # Bundle zu EINEM Archiv packen statt ~2047 Einzeldateien (Actions-Speicherkontingent).
+      - name: Package bundle
         shell: pwsh
         run: Compress-Archive -Path dist/acc_viz/* -DestinationPath dist/acc_viz-windows.zip
-      - name: Package bundle (macOS)
-        if: runner.os == 'macOS'
-        run: cd dist && zip -r -q acc_viz-macos.zip acc_viz.app
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: acc_viz-${{ matrix.os }}
-          path: dist/acc_viz-*.zip
-          if-no-files-found: ignore
+          name: acc_viz-windows
+          path: dist/acc_viz-windows.zip
+          if-no-files-found: error
           retention-days: 3
