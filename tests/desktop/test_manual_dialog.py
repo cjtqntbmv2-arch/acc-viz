@@ -19,3 +19,12 @@ def test_dialog_shows_fallback_on_load_error(qapp, monkeypatch):
     monkeypatch.setattr(md, "load_manual_text", boom)
     dialog = ManualDialog()
     assert dialog.browser.toPlainText().strip() == S.MANUAL_LOAD_ERROR
+
+
+def test_dialog_loads_real_manual_by_default(qapp):
+    from src.ui import strings as S
+
+    dialog = ManualDialog()
+    rendered = dialog.browser.toPlainText()
+    assert rendered.strip()
+    assert rendered.strip() != S.MANUAL_LOAD_ERROR

@@ -7,13 +7,17 @@ and renders it with ``QTextBrowser.setMarkdown``. On read failure it shows a
 plain fallback message instead of crashing.
 """
 
+from typing import TYPE_CHECKING
+
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QTextBrowser,
     QVBoxLayout,
-    QWidget,
 )
+
+if TYPE_CHECKING:
+    from PySide6.QtWidgets import QWidget
 
 from src.desktop.resources import load_manual_text
 from src.ui import strings as S
