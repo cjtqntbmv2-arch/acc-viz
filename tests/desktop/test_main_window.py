@@ -64,3 +64,4 @@ def test_show_manual_opens_dialog(qapp, monkeypatch):
     win = MainWindow()
     win._manual_action.trigger()
     assert created.get("exec") is True
+    assert created["parent"] is win
