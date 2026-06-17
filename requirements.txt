@@ -12,8 +12,3 @@ pyinstaller>=6.0
 
 # --- tests ---
 pytest>=8.0.0
-
-# --- legacy Streamlit frontend (app.py); kept until the desktop port is
-#     verified against real data. Not bundled into the native .exe/.app. ---
-streamlit>=1.35.0
-plotly>=5.18.0

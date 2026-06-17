@@ -35,10 +35,8 @@ hidden = [
     "matplotlib.backends.backend_qtagg",
 ] + mpl_hidden + scipy_hidden + pandas_hidden
 
-# Keep the bundle lean: the native app never imports the old web stack.
+# Keep the bundle lean: exclude GUI/server stacks the native app never imports.
 excludes = [
-    "streamlit",
-    "plotly",
     "tornado",
     "tkinter",
     "PyQt5",
