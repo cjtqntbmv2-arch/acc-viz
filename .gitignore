@@ -8,3 +8,6 @@ build/
 .venv/
 venv/
 .env
+
+# Lokaler OneNote-Export der Anleitung (Quelle bleibt ANLEITUNG_DESKTOP.md)
+ANLEITUNG_DESKTOP_onenote.html
