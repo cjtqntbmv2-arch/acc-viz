@@ -38,6 +38,8 @@ Atomarer Schritt: Verschieben **und** alle Importe in einem Commit, damit die Su
 - Modify: `src/desktop/plots/spectrum_canvas.py:19`
 - Modify: `src/desktop/plots/heatmap_canvas.py:20`
 - Modify: `src/desktop/plots/histogram_canvas.py:14`
+- Modify: `tests/desktop/test_main_window.py:42` (Consumer von `strings`)
+- Modify: `tests/desktop/test_manual_dialog.py:4` und `:25` (Consumer von `strings`)
 
 - [ ] **Step 1: Module per `git mv` verschieben**
 
@@ -88,10 +90,20 @@ In `tests/core/test_errors.py` (war `from src.ui.errors import format_error`):
 from src.core.errors import format_error
 ```
 
-- [ ] **Step 5: Sicherstellen, dass kein `src.ui`-Import mehr existiert**
+- [ ] **Step 4b: `strings`-Importe in `tests/desktop/` anpassen (sonst bricht die Suite nach Task 2)**
 
-Run: `grep -rn "src\.ui" src tests`
+`tests/desktop/test_main_window.py` (Zeile 42) und `tests/desktop/test_manual_dialog.py` (Zeile 4 **und** Zeile 25) — jeweils `from src.ui import strings as S` ersetzen durch:
+
+```python
+from src.core import strings as S
+```
+
+- [ ] **Step 5: Sicherstellen, dass `strings`/`errors` vollständig migriert sind**
+
+Run: `grep -rn "from src.ui import strings\|from src\.ui\.errors\|src\.ui\.strings\|src\.ui\.errors" src tests`
 Expected: **keine Treffer**
+
+(Hinweis: `src.ui.sidebar` / `src.ui.export` werden hier noch von zwei Backward-compat-Tests referenziert — die existieren bis Task 2 legitim weiter und werden dort entfernt. Deshalb hier **kein** pauschales `grep src.ui`.)
 
 - [ ] **Step 6: Volle Testsuite laufen lassen**
 
@@ -113,6 +125,9 @@ git commit -m "refactor(core): move shared strings/errors from ui to core"
 - Delete: `app.py`
 - Delete: `src/ui/sidebar.py`, `src/ui/heatmap.py`, `src/ui/histogram.py`, `src/ui/spectrum.py`, `src/ui/export.py`, `src/ui/__init__.py`
 - Delete: `tests/ui/test_sidebar.py`, `tests/ui/test_heatmap.py`, `tests/ui/test_histogram.py`, `tests/ui/test_smoke.py`, `tests/ui/test_export.py`, `tests/ui/conftest.py`, `tests/ui/__init__.py`
+- Modify: `tests/desktop/test_export.py` (obsoleten Re-Export-Test entfernen)
+- Modify: `tests/core/test_settings.py` (obsoleten Sidebar-Re-Export-Test entfernen)
+- Modify: `pyrightconfig.json` (`app.py` aus `include` entfernen)
 
 - [ ] **Step 1: Streamlit-Quellmodule + Entry löschen**
 
@@ -130,17 +145,60 @@ git rm tests/ui/test_sidebar.py tests/ui/test_heatmap.py \
   tests/ui/conftest.py tests/ui/__init__.py
 ```
 
+- [ ] **Step 2b: Obsolete Backward-compat-Tests entfernen (referenzieren jetzt gelöschte `src.ui`-Module)**
+
+In `tests/desktop/test_export.py` diese Funktion **komplett** löschen (sie prüfte nur den nicht mehr existierenden Re-Export):
+
+```python
+def test_core_export_module_reexported_from_ui():
+    from src.ui.export import build_export_dataframe as ui_fn
+
+    assert ui_fn is build_export_dataframe
+```
+
+In `tests/core/test_settings.py` diese Funktion **komplett** löschen:
+
+```python
+def test_sidebar_reexports_core_settings():
+    """Backward-compat: src.ui.sidebar must still expose the same Settings/Axis."""
+    from src.ui.sidebar import Axis as SidebarAxis
+    from src.ui.sidebar import Settings as SidebarSettings
+
+    assert SidebarSettings is Settings
+    assert SidebarAxis is Axis
+```
+
+(Der Rest beider Dateien bleibt unverändert. Falls `build_export_dataframe` dadurch in `test_export.py` ungenutzt wird: Import-Zeile prüfen — sie wird von `test_export_dataframe_*`-Tests weiter gebraucht, also stehen lassen.)
+
+- [ ] **Step 2c: `app.py` aus `pyrightconfig.json` entfernen (Datei wird gelöscht)**
+
+In `pyrightconfig.json` (Zeile 3) den `include`-Eintrag anpassen:
+
+Alt:
+```json
+  "include": ["src", "tests", "app.py", "packaging"],
+```
+Neu:
+```json
+  "include": ["src", "tests", "packaging"],
+```
+
 - [ ] **Step 3: Bestätigen, dass die Verzeichnisse weg sind**
 
 Run: `ls src/ui tests/ui 2>&1`
 Expected: „No such file or directory" für beide (leere Verzeichnisse von `git rm` entfernt; falls noch vorhanden, mit `rmdir src/ui tests/ui` leeren)
 
-- [ ] **Step 4: Volle Testsuite laufen lassen**
+- [ ] **Step 4: Vollständiger `src.ui`-Gate (jetzt müssen alle Referenzen weg sein)**
 
-Run: `python3 -m pytest -q`
-Expected: PASS (kein Import-Fehler; Streamlit-Tests sind weg)
+Run: `grep -rn "src\.ui\|src/ui" src tests`
+Expected: **keine Treffer** (sidebar/export-Re-Export-Tests entfernt, Module gelöscht)
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Testsuite + pyright grün**
+
+Run: `python3 -m pytest -q && pyright`
+Expected: pytest PASS (kein Import-/Collection-Fehler), pyright 0 errors (kein fehlender `app.py`-Include mehr)
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add -A
@@ -155,6 +213,7 @@ git commit -m "refactor: delete Streamlit frontend modules, entry and tests"
 - Modify: `requirements.txt`
 - Modify: `pyproject.toml:17-18`
 - Modify: `packaging/acc_viz.spec:38-48`
+- Modify: `.gitignore:4` (`.streamlit/`-Eintrag entfernen)
 
 - [ ] **Step 1: `requirements.txt` — Legacy-Block entfernen**
 
@@ -205,16 +264,24 @@ excludes = [
 ]
 ```
 
-- [ ] **Step 4: Gegencheck Dependencies**
+- [ ] **Step 3b: `.gitignore` — `.streamlit/`-Eintrag entfernen**
 
-Run: `grep -rn "streamlit\|plotly" requirements.txt pyproject.toml packaging/`
+Lösche in `.gitignore` (Zeile 4) die Zeile:
+
+```
+.streamlit/
+```
+
+- [ ] **Step 4: Gegencheck Dependencies + Config**
+
+Run: `grep -rn "streamlit\|plotly" requirements.txt pyproject.toml packaging/ .gitignore`
 Expected: **keine Treffer**
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add requirements.txt pyproject.toml packaging/acc_viz.spec
-git commit -m "build: drop streamlit/plotly dependencies"
+git add requirements.txt pyproject.toml packaging/acc_viz.spec .gitignore
+git commit -m "build: drop streamlit/plotly dependencies and config residue"
 ```
 
 ---
@@ -224,7 +291,7 @@ git commit -m "build: drop streamlit/plotly dependencies"
 Rein redaktionell (Docstrings/Kommentare). Keine Logikänderung. Nach jedem Edit bleibt die Suite grün, daher ein Commit am Ende.
 
 **Files (Modify):**
-`desktop_main.py`, `src/core/pipeline.py`, `src/core/export.py`, `src/core/colorscales.py`, `src/core/settings.py`, `src/desktop/control_panel.py`, `src/desktop/main_window.py`, `src/desktop/plots/heatmap_canvas.py`, `src/desktop/plots/spectrum_canvas.py`, `src/desktop/plots/histogram_canvas.py`, `src/platform_utils/folder_picker.py`
+`desktop_main.py`, `src/core/pipeline.py`, `src/core/export.py`, `src/core/colorscales.py`, `src/core/settings.py`, `src/desktop/control_panel.py`, `src/desktop/main_window.py`, `src/desktop/export.py`, `src/desktop/plots/heatmap_canvas.py`, `src/desktop/plots/spectrum_canvas.py`, `src/desktop/plots/histogram_canvas.py`, `src/platform_utils/folder_picker.py`, `packaging/entry.py`
 
 - [ ] **Step 1: `desktop_main.py`** — Zeilen 5-6
 
@@ -277,6 +344,17 @@ Neu:
     Args:
 ```
 
+- [ ] **Step 4b: `src/core/pipeline.py`** — Kommentar Zeile 79 (`st.cache_data`-Hinweis)
+
+Alt:
+```
+# --- loading (with mtime-based caching, replacing st.cache_data) -----------
+```
+Neu:
+```
+# --- loading (with mtime-based caching) ------------------------------------
+```
+
 - [ ] **Step 5: `src/core/export.py`** — Modul-Docstring 5-7
 
 Alt:
@@ -300,6 +378,19 @@ Alt:
 Neu:
 ```
     in German locales.
+```
+
+- [ ] **Step 6b: `src/desktop/export.py`** — Modul-Docstring Zeilen 5-6
+
+Alt:
+```
+Reuses the frontend-agnostic :func:`src.core.export.export_csv_bytes`, so the
+exported file is byte-for-byte identical to the Streamlit download.
+```
+Neu:
+```
+Reuses the frontend-agnostic :func:`src.core.export.export_csv_bytes` for the
+actual byte encoding.
 ```
 
 - [ ] **Step 7: `src/core/colorscales.py`** — Modul-Docstring 5-7
@@ -500,11 +591,25 @@ Neu:
     # thread and hand the result back
 ```
 
+- [ ] **Step 19b: `packaging/entry.py`** — Modul-Docstring Zeile 5 (`former Streamlit bootstrap`)
+
+Alt:
+```
+Replaces the former Streamlit bootstrap. When ``ACC_VIZ_SMOKE=1`` the app quits
+itself after a short delay so the packaging smoke test can assert a clean exit
+```
+Neu:
+```
+When ``ACC_VIZ_SMOKE=1`` the app quits
+itself after a short delay so the packaging smoke test can assert a clean exit
+```
+
 - [ ] **Step 20: Gegencheck — keine Streamlit/Plotly-Verweise mehr im aktiven Code**
 
 Run:
 ```bash
-grep -rn "Streamlit\|streamlit\|Plotly\|plotly\|src\.ui\|src/ui\|app\.py\|st\.metric\|st\.plotly_chart\|render_sidebar\|make_heatmap\|make_histogram\|render_spectrum\|src\.ui\.export" src/ desktop_main.py
+grep -rn "Streamlit\|streamlit\|Plotly\|plotly\|src\.ui\|src/ui\|app\.py\|st\.metric\|st\.plotly_chart\|st\.cache_data\|st\.session_state\|render_sidebar\|make_heatmap\|make_histogram\|render_spectrum" \
+  src/ desktop_main.py packaging/entry.py packaging/build.py
 ```
 Expected: **keine Treffer**
 
@@ -525,12 +630,12 @@ git commit -m "docs: scrub Streamlit/Plotly references from active source"
 ## Task 5: README + BESCHREIBUNG.md auf Desktop-only umschreiben
 
 **Files:**
-- Modify: `README.md:18-24`
+- Modify: `README.md:20-24`
 - Modify: `BESCHREIBUNG.md` (mehrere Stellen)
 
 - [ ] **Step 1: `README.md` — Streamlit-Start-Abschnitt entfernen**
 
-Entferne diesen Block vollständig (Zeilen 18-24):
+Entferne diesen Block vollständig (Zeilen 20-24):
 
 ```
 **Streamlit-App (Legacy-Frontend):**
@@ -648,11 +753,15 @@ git commit -m "docs: rewrite README/BESCHREIBUNG for desktop-only app"
 
 Run:
 ```bash
-grep -rIn -e streamlit -e Streamlit -e plotly -e Plotly -e 'src\.ui' -e 'src/ui' -e 'app\.py' . \
-  --exclude-dir=.git --exclude-dir=docs --exclude-dir=node_modules \
+grep -rIn \
+  -e streamlit -e Streamlit -e plotly -e Plotly \
+  -e 'src\.ui' -e 'src/ui' -e 'app\.py' \
+  -e 'st\.cache_data' -e 'st\.metric' -e 'st\.plotly_chart' -e 'st\.session_state' \
+  . \
+  --exclude-dir=.git --exclude-dir=superpowers --exclude-dir=node_modules \
   --exclude-dir=.pytest_cache --exclude-dir='*.egg-info'
 ```
-Expected: **null Treffer**. (Treffer ausschließlich unter `docs/superpowers/` sind erlaubt — die werden vom `--exclude-dir=docs` ohnehin ausgeschlossen; falls ein Treffer außerhalb `docs/` auftaucht, beheben, bevor es weitergeht.)
+Expected: **null Treffer**. `--exclude-dir=superpowers` schließt **gezielt nur** die History (`docs/superpowers/`) aus — eine Streamlit-Erwähnung in irgendeiner anderen Doc-Datei würde weiterhin gefunden. Jeder Treffer außerhalb der History muss behoben werden, bevor es weitergeht.
 
 Zusätzlicher Egg-Info-Check (generierte Metadaten dürfen ebenfalls keine Streamlit-Spur tragen):
 ```bash
@@ -716,3 +825,16 @@ Expected: Commit + Tag `v0.5.0` landen auf dem Remote.
 **Placeholder-Scan:** Keine „TBD/TODO/später". Jeder Edit-Step zeigt exakten Alt→Neu-Text; jeder Test-Step zeigt Befehl + erwartete Ausgabe. ✓ (Einzige Lese-Anweisung: Task 4 Step 9 `settings.py` Zeile 6 — bewusst, da die Folgezeile nicht im Kontext erfasst ist; Zielzustand „kein Streamlit, grammatikalisch glatt" ist eindeutig.)
 
 **Typ-/Namens-Konsistenz:** Importpfade `src.core.strings` / `src.core.errors` durchgängig identisch in Task 1 verwendet (Quelle, Consumer, Tests). Keine widersprüchlichen Symbolnamen. ✓
+
+## Härtung nach adversarialem grill-me (2026-06-17)
+
+Ein Subagent hat den Plan gegen den echten Code zerlegt; alle Befunde verifiziert und eingearbeitet:
+
+- **B1** — `tests/desktop/test_main_window.py:42`, `tests/desktop/test_manual_dialog.py:4,25` importieren `strings` → in Task 1 Step 4b ergänzt (sonst Collection-Error nach Task 2).
+- **B2** — Backward-compat-Tests `test_core_export_module_reexported_from_ui` (`tests/desktop/test_export.py`) und `test_sidebar_reexports_core_settings` (`tests/core/test_settings.py`) referenzieren gelöschte `src.ui`-Module → in Task 2 Step 2b entfernt.
+- **B3** — `src/desktop/export.py:6` „Streamlit download" → Task 4 Step 6b.
+- **B4** — `src/core/pipeline.py:79` `st.cache_data`-Kommentar → Task 4 Step 4b.
+- **B5** — `packaging/entry.py:5` „former Streamlit bootstrap" → Task 4 Step 19b.
+- **Q1** — `pyrightconfig.json:3` listet `app.py` → Task 2 Step 2c entfernt es (sonst pyright-Fehler).
+- **Q2** — `.gitignore:4` `.streamlit/` → Task 3 Step 3b entfernt es.
+- Gate-Verschärfung: Task 1 Step 5 prüft nur noch `strings`/`errors`-Migration (sidebar/export-Refs leben bis Task 2 legitim weiter); Task 2 Step 4 macht den vollständigen `src.ui`-Gate; Task 4 Step 20 + Task 6 Step 1 fangen zusätzlich `st.`-API-Muster und schließen die History gezielt via `--exclude-dir=superpowers` aus.
