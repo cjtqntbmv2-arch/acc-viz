@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-"""Cross-platform native folder-picker dialog for Streamlit worker threads."""
+"""Cross-platform native folder-picker dialog run on a worker thread."""
 
 import importlib
 import logging
@@ -65,8 +65,8 @@ def _tk_dialog() -> str | None:
 
 def _pick_via_tkinter() -> str | None:
     """Run the Tk folder dialog on a dedicated thread and return its result."""
-    # Tk() must be created on the thread that owns it. Streamlit runs user code
-    # on worker threads, so spawn a dedicated thread and hand the result back
+    # Tk() must be created on the thread that owns it, so spawn a dedicated
+    # thread and hand the result back
     # via a queue.
     q: queue.Queue[tuple[str, object]] = queue.Queue(maxsize=1)
 

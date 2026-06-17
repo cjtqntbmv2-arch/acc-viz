@@ -2,8 +2,8 @@ from __future__ import annotations
 
 """Entry point for the native PySide6 desktop application.
 
-Run with ``python desktop_main.py``. This replaces the Streamlit web app
-(``app.py``) for the packaged, native desktop build.
+Run with ``python desktop_main.py``. This is the entry point for the
+packaged, native desktop build.
 """
 
 import sys

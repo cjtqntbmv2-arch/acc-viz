@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-"""Native matplotlib PSD spectrum canvas — desktop replacement for the Plotly spectrum.
+"""Native matplotlib PSD spectrum canvas for the application.
 
-Mirrors :func:`src.ui.spectrum.render_spectrum`: a log-scaled PSD plot for one
+A log-scaled PSD plot for one
 hole, with the selected ``[f_min, f_max]`` band highlighted. Single-axis modes
 draw the hole's PSD (plus optional dashed reference); ``"RSS"`` draws the three
 per-axis lines and a bold summed line (plus optional summed reference).

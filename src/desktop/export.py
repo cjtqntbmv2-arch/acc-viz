@@ -2,8 +2,8 @@ from __future__ import annotations
 
 """CSV export for the desktop app — native save dialog + file write.
 
-Reuses the frontend-agnostic :func:`src.core.export.export_csv_bytes`, so the
-exported file is byte-for-byte identical to the Streamlit download.
+Reuses the frontend-agnostic :func:`src.core.export.export_csv_bytes` for the
+actual byte encoding.
 """
 
 from pathlib import Path

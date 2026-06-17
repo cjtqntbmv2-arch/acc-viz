@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-"""Main application window — native desktop replacement for the Streamlit app.
+"""Main application window for the native desktop app.
 
 Holds the :class:`ControlPanel` in the left pane of a horizontal splitter and
 reacts to its ``settingsChanged`` signal by re-running the (frontend-agnostic) analysis
-pipeline and redrawing. This replaces Streamlit's "re-run the whole script on
-every widget change" model with an explicit Qt signal/slot recompute.
+pipeline and redrawing — an explicit Qt signal/slot recompute on every
+control change.
 """
 
 from PySide6.QtCore import Qt
@@ -226,7 +226,7 @@ class MainWindow(QMainWindow):
         column = QWidget()
         layout = QVBoxLayout(column)
 
-        # Reference metric (mirrors st.metric in the Streamlit app).
+        # Reference metric.
         ref_label = QLabel("")
         if ref_val is not None:
             value_text = (

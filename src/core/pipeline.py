@@ -2,9 +2,8 @@ from __future__ import annotations
 
 """Frontend-agnostic orchestration of the load → grid → interpolate pipeline.
 
-Extracted from the original Streamlit ``app.py`` so the exact same computation
-can drive any frontend (Streamlit, Qt) and be unit-tested without a UI. No
-Streamlit / Qt imports here on purpose.
+Frontend-agnostic computation core: the same logic drives the Qt desktop UI
+and can be unit-tested without a UI. No Qt imports here on purpose.
 """
 
 import math
@@ -76,7 +75,7 @@ class Analysis:
     hist_range: tuple[float, float] | None
 
 
-# --- loading (with mtime-based caching, replacing st.cache_data) -----------
+# --- loading (with mtime-based caching) ------------------------------------
 
 # Bounded LRU keyed by (folder, newest-csv-mtime). Bounded so a long session of
 # browsing many folders (each LoadResult holds full DataFrames) cannot grow
@@ -114,7 +113,7 @@ def _cached_load(folder: str) -> LoadResult:
 def load_plates(folders: Sequence[tuple[str, str]]) -> PlateLoad:
     """Load every plate folder, collecting warnings and user-facing errors.
 
-    Mirrors the original Streamlit load loop: each folder is loaded (with
+    Each folder is loaded (with
     mtime-based caching), warnings are prefixed with the plate label, and load
     failures are turned into localized error strings instead of raising.
 
@@ -151,8 +150,6 @@ def load_plates(folders: Sequence[tuple[str, str]]) -> PlateLoad:
 
 def analyze(plates: dict[str, PlateEntry], settings: Settings) -> Analysis:
     """Compute per-plate grids, reference RMS, interpolation and shared z-range.
-
-    Mirrors the original Streamlit compute block exactly.
 
     Args:
         plates: Mapping from plate label to ``(hole_data, ref_df)`` tuples, as

@@ -2,13 +2,13 @@ from __future__ import annotations
 
 """Canonical colorscale identifiers and their matplotlib colormap equivalents.
 
-Single source of truth shared by the Streamlit sidebar, the Qt control panel
-and the matplotlib heatmap canvas, so the selectable list and the Plotly→mpl
-mapping can never drift apart.
+Single source of truth shared by the Qt control panel and the matplotlib
+heatmap canvas, so the selectable list and the colormap mapping can never
+drift apart.
 """
 
-# User-selectable colorscale identifiers (Plotly naming, kept for continuity
-# with the original Streamlit app and any saved user expectations).
+# User-selectable colorscale identifiers, kept stable for continuity with
+# saved user expectations.
 COLORSCALES: tuple[str, ...] = (
     "Viridis", "Plasma", "Hot", "RdBu", "Cividis", "Turbo", "Inferno",
 )

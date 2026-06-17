@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-"""Native matplotlib histogram canvas — desktop replacement for the Plotly histogram.
+"""Native matplotlib histogram canvas for the application.
 
-Mirrors :func:`src.ui.histogram.make_histogram`: non-finite values are dropped,
+Non-finite values are dropped,
 the bin count is capped at the number of finite values, and an optional dashed
 reference line marks the reference value.
 """
@@ -43,7 +43,7 @@ class HistogramCanvas(ScrollPassthroughCanvas):
         x_range: tuple[float, float] | None = None,
         show_stats: bool = False,
     ) -> None:
-        """Draw the histogram. Mirrors ``make_histogram`` semantics."""
+        """Draw the histogram."""
         self._figure.clear()
         self.axes = self._figure.add_subplot(111)
 

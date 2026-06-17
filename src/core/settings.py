@@ -2,8 +2,8 @@ from __future__ import annotations
 
 """Immutable, UI-agnostic snapshot of all user-selected analysis settings.
 
-This module is intentionally free of any frontend dependency (no Streamlit, no
-Qt) so it can be shared by every frontend and unit-tested in isolation.
+This module is intentionally free of any frontend dependency (no Qt, no
+matplotlib) so it can be shared by every frontend and unit-tested in isolation.
 """
 
 from dataclasses import dataclass

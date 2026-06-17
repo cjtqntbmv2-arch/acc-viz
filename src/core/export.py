@@ -2,9 +2,8 @@ from __future__ import annotations
 
 """Frontend-agnostic CSV export of aggregated per-hole band-RMS results.
 
-Extracted from the original Streamlit ``src.ui.export`` so the same export logic
-can drive any frontend (Streamlit download button, Qt save dialog). No Streamlit
-import here on purpose.
+Kept frontend-agnostic so the export logic backs the Qt save dialog and can be
+unit-tested without a UI.
 """
 
 import math
@@ -86,7 +85,7 @@ def export_csv_bytes(
     """Build the aggregated export CSV as UTF-8-with-BOM, ``;``-separated bytes.
 
     Uses ``;`` as the field separator and a UTF-8 BOM for Excel compatibility
-    in German locales (matching the original Streamlit download).
+    in German locales.
     """
     df = build_export_dataframe(plates, f_min=f_min, f_max=f_max, axis=axis)
     return df.to_csv(index=False, sep=";").encode("utf-8-sig")

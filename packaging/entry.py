@@ -2,7 +2,7 @@ from __future__ import annotations
 
 """Frozen-app entry point: launch the native PySide6 desktop application.
 
-Replaces the former Streamlit bootstrap. When ``ACC_VIZ_SMOKE=1`` the app quits
+When ``ACC_VIZ_SMOKE=1`` the app quits
 itself after a short delay so the packaging smoke test can assert a clean exit
 without a human closing the window.
 """

@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-"""Native matplotlib heatmap canvas — the desktop replacement for the Plotly heatmap.
+"""Native matplotlib heatmap canvas for the application.
 
-Mirrors :func:`src.ui.heatmap.make_heatmap`: an interpolated grid drawn with the
-selected colormap, white markers at measured holes and an optional yellow star at
-the plate center for the reference value. Clicking a cell emits
-:attr:`HeatmapCanvas.holeClicked` with the snapped integer ``(x, y)`` coordinate,
-replacing Streamlit's ``st.plotly_chart(on_select="rerun")``.
+An interpolated grid drawn with the selected colormap, white markers at measured
+holes and an optional yellow star at the plate center for the reference value.
+Clicking a cell emits :attr:`HeatmapCanvas.holeClicked` with the snapped integer
+``(x, y)`` coordinate.
 """
 
 import numpy as np
@@ -85,8 +84,7 @@ def resolve_hover(
     """Tooltip text for a cursor data-coordinate over the heatmap, or ``None``.
 
     Priority: reference star (near center) > measured hole > interpolated cell.
-    NaN/gap cells and positions outside the grid return ``None`` (Plotly parity
-    with ``hoverongaps=False``).
+    NaN/gap cells and positions outside the grid return ``None``.
     """
     if xdata is None or ydata is None:
         return None
@@ -192,7 +190,7 @@ class HeatmapCanvas(ScrollPassthroughCanvas):
         vmin, vmax = (z_range if z_range else (None, None))
 
         # grid[x, y] -> display M[y, x] so the x-axis is hole x and y-axis hole y.
-        # origin="upper" puts y=0 at the top, matching the Plotly reversed y-axis.
+        # origin="upper" puts y=0 at the top (reversed y-axis).
         masked = np.ma.masked_invalid(grid.T)
         cmap = colorscale_to_cmap(colorscale)
         im = self.axes.imshow(

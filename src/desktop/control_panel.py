@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-"""Native PySide6 settings panel — the desktop replacement for the Streamlit sidebar.
+"""Native PySide6 settings panel for the application.
 
-Mirrors :func:`src.ui.sidebar.render_sidebar`: it exposes the same controls and
+It exposes the analysis controls and
 produces the same frozen :class:`Settings` snapshot, but as a long-lived widget
 that emits :attr:`ControlPanel.settingsChanged` whenever any control changes.
 """
