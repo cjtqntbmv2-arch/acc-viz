@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from src.core.export import build_export_dataframe, export_csv_bytes
+from src.core.export import export_csv_bytes
 from src.desktop.export import save_export
 
 
@@ -17,12 +17,6 @@ def _df(val):
 
 def _plates():
     return {"Platte 1": ({(0, 0): _df(1e-3), (1, 1): _df(4e-3)}, _df(1e-3))}
-
-
-def test_core_export_module_reexported_from_ui():
-    from src.ui.export import build_export_dataframe as ui_fn
-
-    assert ui_fn is build_export_dataframe
 
 
 def test_export_csv_bytes_uses_semicolon_and_bom():

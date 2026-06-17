@@ -28,15 +28,6 @@ def test_axis_literal_contains_rss():
     assert set(get_args(Axis)) == {"X", "Y", "Z", "RSS"}
 
 
-def test_sidebar_reexports_core_settings():
-    """Backward-compat: src.ui.sidebar must still expose the same Settings/Axis."""
-    from src.ui.sidebar import Axis as SidebarAxis
-    from src.ui.sidebar import Settings as SidebarSettings
-
-    assert SidebarSettings is Settings
-    assert SidebarAxis is Axis
-
-
 def test_settings_folders_is_tuple_and_hashable_value():
     from src.core.settings import Settings
 
