@@ -14,7 +14,7 @@ COLORSCALES: tuple[str, ...] = (
 )
 
 # Colorscale identifier -> matplotlib colormap name.
-_PLOTLY_TO_MPL: dict[str, str] = {
+_COLORSCALE_TO_CMAP: dict[str, str] = {
     "Viridis": "viridis",
     "Plasma": "plasma",
     "Hot": "hot",
@@ -30,4 +30,4 @@ def to_cmap(name: str) -> str:
 
     Falls back to ``"viridis"`` for unknown names so rendering never fails.
     """
-    return _PLOTLY_TO_MPL.get(name, "viridis")
+    return _COLORSCALE_TO_CMAP.get(name, "viridis")
