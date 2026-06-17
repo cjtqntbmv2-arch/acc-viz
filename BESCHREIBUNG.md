@@ -1,7 +1,7 @@
 # Beschleunigungs-Visualisierung
 
-Streamlit-App zur Auswertung und Visualisierung von Beschleunigungs-PSD-Messungen
-an Plattenbohrungen.
+Desktop-App (PySide6) zur Auswertung und Visualisierung von
+Beschleunigungs-PSD-Messungen an Plattenbohrungen.
 
 ## Input
 
@@ -9,13 +9,13 @@ an Plattenbohrungen.
   - **Lochmessungen**: CSV-Dateien `x{N}-y{M}.csv` (0-indizierte Koordinaten)
     - Spalten: `Frequenz_Hz`, `PSD_X_g2Hz`, `PSD_Y_g2Hz`, `PSD_Z_g2Hz`
   - **Referenzmessung** (optional): `Referenz.csv` mit gleichem Schema
-- **UI-Einstellungen** (Sidebar):
+- **UI-Einstellungen** (Bedienpanel):
   - Frequenzband `[f_min, f_max]` in Hz
   - Achse: `X` / `Y` / `Z` / `RSS` (Root Sum of Squares)
   - Normalisierung relativ zur Referenz (Toggle)
   - Interpolation an/aus (Toggle)
   - Gemeinsame Farbskala über beide Platten (Toggle)
-  - Plotly-Farbpalette
+  - Farbskala
 
 ## Funktion
 
@@ -27,13 +27,13 @@ an Plattenbohrungen.
 4. **Optional Normalisierung**: jedes Loch wird durch den Referenz-RMS geteilt.
 5. **Optional Interpolation**: fehlende Zellen werden per linearer Triangulation
    + Nearest-Neighbour-Fallback gefüllt; bei deaktiviertem Toggle bleiben sie leer.
-6. **Heatmap-Anzeige**: pro Platte eine Plotly-Heatmap mit
+6. **Heatmap-Anzeige**: pro Platte eine matplotlib-Heatmap mit
    Lochmarkern und Referenz-Stern in Plattenmitte.
 7. **Spektrum-Drilldown**: Klick auf eine Lochzelle zeigt das PSD-Spektrum.
 
 ## Output
 
-- **Heatmaps** der Band-RMS-Verteilung pro Platte (interaktiv, Plotly).
+- **Heatmaps** der Band-RMS-Verteilung pro Platte (matplotlib).
 - **Referenz-Metric** (Stern + Wert) pro Platte.
 - **PSD-Spektrum** des ausgewählten Lochs (mit Referenzkurve, hervorgehobenes Band).
 - **CSV-Export**: pro Loch eine Zeile mit absolutem und normalisiertem
@@ -42,5 +42,5 @@ an Plattenbohrungen.
 ## Start
 
 ```bash
-python3 -m streamlit run app.py
+python3 desktop_main.py
 ```

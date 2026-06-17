@@ -17,12 +17,6 @@ Kurzbeschreibung und Anleitung der Desktop-App: [ANLEITUNG_DESKTOP.md](ANLEITUNG
 python3 desktop_main.py
 ```
 
-**Streamlit-App (Legacy-Frontend):**
-
-```bash
-python3 -m streamlit run app.py
-```
-
 ## Entwicklung
 
 ```bash
