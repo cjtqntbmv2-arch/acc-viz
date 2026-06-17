@@ -63,6 +63,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    # Running as a standalone script puts ``packaging/`` on ``sys.path[0]``,
+    # not the repo root, so make ``src`` importable before importing from it.
+    sys.path.insert(0, str(ROOT))
     from src.logging_setup import configure_logging
 
     configure_logging()
