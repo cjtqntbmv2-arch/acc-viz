@@ -129,12 +129,14 @@ git commit -m "refactor(core): move shared strings/errors from ui to core"
 - Modify: `tests/core/test_settings.py` (obsoleten Sidebar-Re-Export-Test entfernen)
 - Modify: `pyrightconfig.json` (`app.py` aus `include` entfernen)
 
-- [ ] **Step 1: Streamlit-Quellmodule + Entry löschen**
+- [ ] **Step 1: Streamlit-Quellmodule + Entry + Shim löschen**
+
+`src/ui/strings.py` ist nach Task 1 ein temporärer Backward-compat-Shim (Re-Export aus `src.core.strings`), der nur die hier gelöschten Streamlit-Module am Leben hielt — er muss mit weg. Die kanonischen `strings.py`/`errors.py` liegen bereits in `src/core/`, daher kann das **gesamte** `src/ui/`-Verzeichnis entfernt werden:
 
 ```bash
 git rm app.py \
   src/ui/sidebar.py src/ui/heatmap.py src/ui/histogram.py \
-  src/ui/spectrum.py src/ui/export.py src/ui/__init__.py
+  src/ui/spectrum.py src/ui/export.py src/ui/strings.py src/ui/__init__.py
 ```
 
 - [ ] **Step 2: Streamlit-Tests + ui-Test-Infrastruktur löschen**
