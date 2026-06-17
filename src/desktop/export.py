@@ -10,7 +10,7 @@ from pathlib import Path
 
 from src.core.export import PlateMapping, export_csv_bytes
 from src.core.settings import Axis
-from src.ui import strings as S
+from src.core import strings as S
 
 _DEFAULT_FILENAME = "beschleunigung_export.csv"
 

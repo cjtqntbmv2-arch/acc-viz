@@ -11,7 +11,7 @@ import numpy as np
 from matplotlib.figure import Figure
 
 from src.desktop.plots._canvas_base import ScrollPassthroughCanvas
-from src.ui import strings as S
+from src.core import strings as S
 
 BAR_COLOR = "#4C78A8"
 REF_LINE_COLOR = (1, 1, 0, 0.9)

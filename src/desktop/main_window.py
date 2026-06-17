@@ -37,7 +37,7 @@ from src.desktop.manual_dialog import ManualDialog
 from src.desktop.plots.heatmap_canvas import HeatmapCanvas
 from src.desktop.plots.histogram_canvas import HistogramCanvas
 from src.desktop.plots.spectrum_canvas import SpectrumCanvas
-from src.ui import strings as S
+from src.core import strings as S
 
 # Settings fields that change the computed result (vs. pure display fields like
 # colorscale / histogram_bins). When only display fields change we re-render

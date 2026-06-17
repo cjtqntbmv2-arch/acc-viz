@@ -29,7 +29,7 @@ from PySide6.QtWidgets import (
 from src.analysis.interpolation import InterpolationMethod
 from src.core.colorscales import COLORSCALES
 from src.core.settings import Axis, Settings, normalize_path
-from src.ui import strings as S
+from src.core import strings as S
 
 # Re-exported for callers/tests that import it from here.
 __all__ = ["ControlPanel", "normalize_path"]

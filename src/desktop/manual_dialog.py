@@ -20,7 +20,7 @@ if TYPE_CHECKING:
     from PySide6.QtWidgets import QWidget
 
 from src.desktop.resources import load_manual_text
-from src.ui import strings as S
+from src.core import strings as S
 
 
 class ManualDialog(QDialog):

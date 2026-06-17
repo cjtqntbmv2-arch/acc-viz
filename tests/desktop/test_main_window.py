@@ -39,7 +39,7 @@ def test_refresh_resets_override_cursor(qapp, tmp_path):
 
 
 def test_help_menu_has_manual_action(qapp):
-    from src.ui import strings as S
+    from src.core import strings as S
 
     win = MainWindow()
     menu_titles = [a.text() for a in win.menuBar().actions()]

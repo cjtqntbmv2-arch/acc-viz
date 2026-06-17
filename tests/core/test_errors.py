@@ -9,7 +9,7 @@ from src.io.schema import (
     CsvContentError,
     AccVizError,
 )
-from src.ui.errors import format_error
+from src.core.errors import format_error
 
 
 def test_format_invalid_folder_not_exists():

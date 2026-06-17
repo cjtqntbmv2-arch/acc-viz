@@ -16,7 +16,7 @@ from matplotlib.figure import Figure
 from src.analysis.rms import rss_series
 from src.core.settings import Axis
 from src.desktop.plots._canvas_base import ScrollPassthroughCanvas
-from src.ui import strings as S
+from src.core import strings as S
 
 _SINGLE_AXES: tuple[Literal["X", "Y", "Z"], ...] = ("X", "Y", "Z")
 _FLOOR = 1e-30

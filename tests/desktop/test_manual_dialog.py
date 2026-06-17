@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from src.desktop.manual_dialog import ManualDialog
-from src.ui import strings as S
+from src.core import strings as S
 
 
 def test_dialog_renders_supplied_text(qapp):
@@ -22,7 +22,7 @@ def test_dialog_shows_fallback_on_load_error(qapp, monkeypatch):
 
 
 def test_dialog_loads_real_manual_by_default(qapp):
-    from src.ui import strings as S
+    from src.core import strings as S
 
     dialog = ManualDialog()
     rendered = dialog.browser.toPlainText()

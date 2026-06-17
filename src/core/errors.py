@@ -9,7 +9,7 @@ from src.io.schema import (
     CsvSchemaError,
     InvalidPlateFolderError,
 )
-from src.ui import strings as S
+from src.core import strings as S
 
 
 def format_error(exc: AccVizError, *, plate_label: str) -> str:

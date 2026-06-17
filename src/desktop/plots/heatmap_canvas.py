@@ -17,7 +17,7 @@ from PySide6.QtWidgets import QToolTip
 
 from src.core.colorscales import to_cmap as colorscale_to_cmap
 from src.desktop.plots._canvas_base import ScrollPassthroughCanvas
-from src.ui import strings as S
+from src.core import strings as S
 
 __all__ = ["HeatmapCanvas", "colorscale_to_cmap", "nearest_cell"]
 

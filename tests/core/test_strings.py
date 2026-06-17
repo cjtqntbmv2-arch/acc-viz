@@ -1,5 +1,5 @@
 from __future__ import annotations
-from src.ui import strings as S
+from src.core import strings as S
 
 
 def test_required_strings_exist():
@@ -32,7 +32,7 @@ def test_error_path_format_has_placeholder():
 
 
 def test_manual_strings_present():
-    from src.ui import strings as S
+    from src.core import strings as S
 
     assert S.MENU_HELP == "Hilfe"
     assert S.MENU_HELP_MANUAL == "Anleitung"

@@ -23,8 +23,8 @@ from src.core.settings import Settings
 from src.io.plate_loader import LoadResult, load_plate
 from src.io.schema import AccVizError
 from src.logging_setup import get_logger
-from src.ui import strings as S
-from src.ui.errors import format_error
+from src.core import strings as S
+from src.core.errors import format_error
 
 _LOG = get_logger(__name__)
 
