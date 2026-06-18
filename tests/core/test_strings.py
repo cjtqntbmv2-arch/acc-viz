@@ -38,3 +38,11 @@ def test_manual_strings_present():
     assert S.MENU_HELP_MANUAL == "Anleitung"
     assert S.MANUAL_DIALOG_TITLE
     assert S.MANUAL_LOAD_ERROR
+
+
+def test_load_progress_strings_present():
+    assert S.LOAD_PROGRESS_TITLE
+    assert "{i}" in S.LOAD_PROGRESS_LABEL
+    assert "{n}" in S.LOAD_PROGRESS_LABEL
+    assert S.LOAD_CANCEL
+    assert S.LOAD_CANCELLED
