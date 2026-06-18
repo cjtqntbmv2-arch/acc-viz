@@ -4,6 +4,7 @@ import math
 from typing import Any
 
 import numpy as np
+import pytest
 
 from src.core.pipeline import analyze, load_plates
 from src.core.settings import Settings
@@ -153,3 +154,59 @@ def test_analyze_ref_rms_present_with_reference(tmp_path):
     res = analyze(out.plates, _settings([("Platte 1", str(folder))]))
     assert "Platte 1" in res.ref_rms
     assert res.ref_rms["Platte 1"] > 0
+
+
+def test_load_plates_propagates_cancellation(tmp_path):
+    from tests.core.conftest import make_plate_folder
+    from src.io.schema import LoadCancelled
+
+    folder = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
+
+    def cb(done, total, name):
+        raise LoadCancelled
+
+    with pytest.raises(LoadCancelled):
+        load_plates([("Platte 1", str(folder))], progress=cb)
+
+
+def test_load_plates_progress_is_one_global_bar_across_folders(tmp_path):
+    from tests.core.conftest import make_plate_folder
+
+    f1 = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})       # 2 files
+    f2 = make_plate_folder(tmp_path / "p2", {(0, 0): 1e-3}, ref_val=1e-3)        # 2 files
+    seen: list[tuple[int, int]] = []
+    load_plates(
+        [("Platte 1", str(f1)), ("Platte 2", str(f2))],
+        progress=lambda done, total, name: seen.append((done, total)),
+    )
+    assert [d for d, _ in seen] == [1, 2, 3, 4]
+    assert all(t == 4 for _, t in seen)
+
+
+def test_load_plates_cache_hit_reports_no_progress(tmp_path):
+    from tests.core.conftest import make_plate_folder
+
+    folder = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
+    load_plates([("Platte 1", str(folder))])           # warm the LRU
+    calls: list[str] = []
+    load_plates([("Platte 1", str(folder))], progress=lambda d, t, n: calls.append(n))
+    assert calls == []
+
+
+def test_load_plates_progress_monotonic_when_a_folder_errors(tmp_path):
+    from tests.core.conftest import make_plate_folder
+
+    good = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})     # 2 files
+    bad = tmp_path / "p2"
+    bad.mkdir()
+    (bad / "x0-y0.csv").write_text("# junk\nFrequenz_Hz,PSD_X_g2Hz\n0.0,1e-3\n1.0,1e-3\n")
+    seen: list[tuple[int, int]] = []
+    out = load_plates(
+        [("Platte 1", str(good)), ("Platte 2", str(bad))],
+        progress=lambda d, t, n: seen.append((d, t)),
+    )
+    dones = [d for d, _ in seen]
+    assert dones == [1, 2, 3]                  # monotonic, never backwards
+    assert all(t == 3 for _, t in seen)        # grand_total stable
+    assert "Platte 2" not in out.plates
+    assert len(out.errors) == 1

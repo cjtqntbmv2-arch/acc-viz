@@ -40,3 +40,16 @@ def make_plate_folder(
     if ref_val is not None:
         _write_csv(root / "Referenz.csv", freqs, ref_val)
     return root
+
+
+import pytest
+
+from src.core import pipeline
+
+
+@pytest.fixture(autouse=True)
+def _clear_load_cache():
+    """Keep the module-level LRU from leaking state across tests."""
+    pipeline._LOAD_CACHE.clear()
+    yield
+    pipeline._LOAD_CACHE.clear()
