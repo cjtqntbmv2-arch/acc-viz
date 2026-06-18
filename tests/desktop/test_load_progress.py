@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from typing import cast
+
+from PySide6.QtWidgets import QProgressDialog
+
 from src.desktop.load_progress import load_with_progress
 
 
@@ -31,7 +35,9 @@ def test_load_with_progress_drives_dialog_and_returns_load(qapp, tmp_path):
 
     folder = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
     fake = FakeDialog()
-    load = load_with_progress(None, [("Platte 1", str(folder))], dialog_factory=lambda: fake)
+    load = load_with_progress(
+        None, [("Platte 1", str(folder))], dialog_factory=lambda: cast(QProgressDialog, fake)
+    )
     assert load is not None
     assert "Platte 1" in load.plates
     assert fake.range == (0, 2)
@@ -47,9 +53,9 @@ def test_load_with_progress_no_files_creates_no_dialog(qapp, tmp_path):
     load_plates([("Platte 1", str(folder))])           # warm cache
     created = {"n": 0}
 
-    def factory():
+    def factory() -> QProgressDialog:
         created["n"] += 1
-        return FakeDialog()
+        return cast(QProgressDialog, FakeDialog())
 
     load = load_with_progress(None, [("Platte 1", str(folder))], dialog_factory=factory)
     assert load is not None
@@ -61,6 +67,8 @@ def test_load_with_progress_cancel_returns_none(qapp, tmp_path):
 
     folder = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
     fake = FakeDialog(cancel_after=1)
-    load = load_with_progress(None, [("Platte 1", str(folder))], dialog_factory=lambda: fake)
+    load = load_with_progress(
+        None, [("Platte 1", str(folder))], dialog_factory=lambda: cast(QProgressDialog, fake)
+    )
     assert load is None
     assert fake.closed is True
