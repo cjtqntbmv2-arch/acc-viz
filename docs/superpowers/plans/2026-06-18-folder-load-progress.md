@@ -2,13 +2,15 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Stop the Windows "Keine Rückmeldung" freeze when loading ~200 MB measurement folders by (a) swapping the pandas parser to the C engine and (b) showing a cooperative modal progress dialog driven on the UI thread.
+**Goal:** Stop the Windows "Keine Rückmeldung" freeze when loading ~200 MB of measurement CSVs by (a) swapping the pandas parser to the C engine and (b) showing a cooperative modal `QProgressDialog` driven on the UI thread.
 
-**Architecture:** The load loop stays on the UI thread (Variante ①) but pumps Qt events per file and updates a modal `QProgressDialog`; with the C engine each 3.3 MB file parses in ~tens of ms, so the window never reaches the 5 s freeze threshold. Progress flows through a Qt-free `Callable` so `core`/`io` stay UI-agnostic; the Qt glue lives in a small `desktop/load_progress.py` helper. The load remains **synchronous from the caller's view**, so existing desktop tests stay valid.
+**Architecture:** The load loop stays on the UI thread (Variante ①) but pumps Qt events per file and updates a modal dialog; with the C engine each 3.3 MB file parses in ~tens of ms, so the window never reaches the 5 s freeze threshold. Progress flows through a Qt-free `Callable`; the Qt glue lives in a small `desktop/load_progress.py`. The load stays **synchronous from the caller's view**, so existing desktop tests stay valid.
 
-**Tech Stack:** Python 3.10+, pandas (C parser), PySide6 (`QProgressDialog`, `QApplication.processEvents`), pytest (+ offscreen Qt fixture).
+**Tech Stack:** Python 3.10+, pandas (C parser), PySide6 (`QProgressDialog`, `QApplication.processEvents`), pytest (offscreen Qt fixture), pyright (CI gate, pinned 1.1.410).
 
 **Spec:** `docs/superpowers/specs/2026-06-18-folder-load-progress-design.md`
+
+**This plan was hardened by an adversarial agent review.** Key corrections baked in: pyright-clean closure factory (no `inner: …=None` + `def inner`); one global progress total computed up front with `base` advancing on **every** outcome (fixes backwards bar on a mid-folder error and the duplicate-folder stall); lazy dialog construction (no flicker / no widget on cache hits); a `_is_loading` re-entrancy guard (queued signals **do** fire during `processEvents`); and **Option-A cancel** = fully revert folder field **and** view to the last good state.
 
 ---
 
@@ -16,15 +18,15 @@
 
 | File | Responsibility | Change |
 |---|---|---|
-| `src/io/schema.py` | Shared CSV vocab + domain errors | Add `ProgressCallback` type + `LoadCancelled` exception |
-| `src/io/csv_reader.py` | Robust single-CSV reader | `engine="python"` → `engine="c"` |
-| `src/io/plate_loader.py` | Load one plate folder | Add `progress` param, file-count total, `_is_plate_file`/`count_plate_files` |
-| `src/core/pipeline.py` | Frontend-agnostic load orchestration | Thread `progress` through cache, aggregate one global bar, propagate `LoadCancelled` |
-| `src/core/strings.py` | German UI strings | 4 new progress/cancel constants |
-| `src/desktop/load_progress.py` | **New** Qt glue: drive modal dialog | New file (`load_with_progress`) |
-| `src/desktop/main_window.py` | Main window / pipeline wiring | Call `load_with_progress`, handle cancel |
-
-Keeping the Qt dialog driver in its own `load_progress.py` (rather than inside `main_window.py`) keeps the GUI entry file lean (it is already 325 lines) **and** makes the dialog logic unit-testable without constructing the whole window.
+| `src/io/schema.py` | CSV vocab + domain errors | Add `ProgressCallback` + `LoadCancelled` |
+| `src/io/csv_reader.py` | Single-CSV reader | `engine="python"` → `engine="c"` |
+| `src/io/plate_loader.py` | Load one plate folder | `_is_plate_file`, `count_plate_files`, `progress` + total |
+| `src/core/pipeline.py` | Load orchestration | `_make_inner`, precomputed counts, base-advance-on-all-paths, propagate `LoadCancelled` |
+| `src/core/strings.py` | German UI strings | 4 progress/cancel constants |
+| `src/desktop/load_progress.py` | **New** Qt dialog driver | `load_with_progress` (lazy dialog) |
+| `src/desktop/control_panel.py` | Settings panel | `folder_texts` / `restore_folder_texts` |
+| `src/desktop/main_window.py` | Window / wiring | `_is_loading` guard + Option-A cancel |
+| `tests/core/conftest.py` | Core test helpers | autouse `_LOAD_CACHE` reset fixture |
 
 ---
 
@@ -40,8 +42,6 @@ Append to `tests/io/test_schema.py`:
 
 ```python
 def test_load_cancelled_is_plain_exception_not_accviz_error():
-    # LoadCancelled must NOT be an AccVizError: load_plates turns AccVizError
-    # into per-plate error strings, but a cancellation has to propagate.
     from src.io.schema import LoadCancelled, AccVizError
 
     assert issubclass(LoadCancelled, Exception)
@@ -61,13 +61,13 @@ Expected: FAIL with `ImportError: cannot import name 'LoadCancelled'`
 
 - [ ] **Step 3: Write minimal implementation**
 
-In `src/io/schema.py`, add `Callable` to the typing imports at the top:
+In `src/io/schema.py`, add to the imports at the top:
 
 ```python
 from collections.abc import Callable
 ```
 
-Then append at the end of the file:
+Append at the end of the file:
 
 ```python
 # (done_files, total_files, current_filename) — UI-agnostic progress signal.
@@ -86,7 +86,7 @@ class LoadCancelled(Exception):
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/io/test_schema.py -v`
-Expected: PASS (all, including the two new tests)
+Expected: PASS (all)
 
 - [ ] **Step 5: Commit**
 
@@ -103,7 +103,7 @@ git commit -m "feat(io): add ProgressCallback type and LoadCancelled exception"
 - Modify: `src/io/csv_reader.py:70-76`
 - Test: `tests/io/test_csv_reader.py`
 
-This is a behavior-preserving refactor. The existing 12 `test_csv_reader` tests are the regression guard; we add one representative many-row test (matching the real 3.3 MB shape) that must stay green **before and after** the swap.
+Behavior-preserving refactor. The existing **11** `test_csv_reader` tests are the regression guard; we add one representative many-row test that must stay green **before and after** the swap (verified empirically: 12 pass under the C engine).
 
 - [ ] **Step 1: Add a representative regression test**
 
@@ -111,7 +111,6 @@ Append to `tests/io/test_csv_reader.py`:
 
 ```python
 def test_parses_many_rows_semicolon_decimal_comma(tmp_path):
-    # Mirrors a real measurement file: many rows, ';' separator, decimal comma.
     rows = [(float(i), 1e-3, 2e-3, 3e-3) for i in range(2000)]
     p = tmp_path / "x1-y1.csv"
     write_csv(p, rows, sep=";", decimal=",", encoding="cp1252")
@@ -124,11 +123,11 @@ def test_parses_many_rows_semicolon_decimal_comma(tmp_path):
 - [ ] **Step 2: Establish green baseline (still on the python engine)**
 
 Run: `pytest tests/io/test_csv_reader.py -v`
-Expected: PASS (all, including the new test) — proves the test is valid before the change.
+Expected: PASS (12 tests) — proves the new test is valid before the change.
 
 - [ ] **Step 3: Make the one-line change**
 
-In `src/io/csv_reader.py`, inside `read_measurement_csv`, change the `pd.read_csv(...)` call:
+In `src/io/csv_reader.py`, in `read_measurement_csv`, change `engine="python"` to `engine="c"`:
 
 ```python
         df = pd.read_csv(
@@ -140,12 +139,10 @@ In `src/io/csv_reader.py`, inside `read_measurement_csv`, change the `pd.read_cs
         )
 ```
 
-(Only `engine="python"` → `engine="c"`. All of `skiprows`, single-char `sep`, and `decimal` are C-engine compatible.)
-
 - [ ] **Step 4: Run tests to verify they still pass**
 
 Run: `pytest tests/io/test_csv_reader.py -v`
-Expected: PASS (all 13) — proves the swap preserves behavior across encodings, separators, decimal comma, BOM, header offset, and error paths.
+Expected: PASS (12) — identical behavior across encodings, separators, decimal comma, BOM, header offset, and all error paths.
 
 - [ ] **Step 5: Commit**
 
@@ -162,7 +159,7 @@ git commit -m "perf(io): parse measurement CSVs with the pandas C engine"
 - Modify: `src/io/plate_loader.py`
 - Test: `tests/io/test_plate_loader.py`
 
-Contract: `progress(i, total, name)` is called **once per file that will be parsed**, with `i` 1-based and increasing, `total` constant (= count of hole files + optional reference), `name` the file name. It is called **before** reading that file, so raising `LoadCancelled` from the callback aborts before the next read.
+Contract: `progress(i, total, name)` fires **once per file that will be parsed**, `i` 1-based and increasing, `total` constant (= hole files + optional reference), called **before** reading file `i`. `count_plate_files` MUST share the exact predicate `load_plate` uses (so the pipeline's `base` offset matches the emitted count).
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -174,22 +171,21 @@ def test_load_plate_reports_progress_once_per_file(tmp_path):
     calls: list[tuple[int, int, str]] = []
     load_plate(tmp_path, progress=lambda done, total, name: calls.append((done, total, name)))
     dones = [c[0] for c in calls]
-    assert len(calls) == 4
-    assert dones == [1, 2, 3, 4]              # 1-based, monotonic, ends at total
-    assert all(c[1] == 4 for c in calls)       # total constant
+    assert dones == [1, 2, 3, 4]
+    assert all(c[1] == 4 for c in calls)
     assert all(c[2].lower().endswith(".csv") for c in calls)
 
 
 def test_load_plate_without_progress_is_unchanged(tmp_path):
     _populate_plate(tmp_path)
-    result = load_plate(tmp_path)              # no progress kwarg
+    result = load_plate(tmp_path)
     assert set(result.hole_data.keys()) == {(1, 1), (1, 2), (2, 1)}
 
 
 def test_load_plate_cancel_aborts_before_reading_remaining(tmp_path):
     from src.io.schema import LoadCancelled
 
-    _populate_plate(tmp_path)                  # 4 files
+    _populate_plate(tmp_path)
     seen: list[str] = []
 
     def cb(done, total, name):
@@ -199,7 +195,17 @@ def test_load_plate_cancel_aborts_before_reading_remaining(tmp_path):
 
     with pytest.raises(LoadCancelled):
         load_plate(tmp_path, progress=cb)
-    assert len(seen) == 2                       # stopped at the 2nd file
+    assert len(seen) == 2
+
+
+def test_count_plate_files_matches_parsed_count_ignoring_strays(tmp_path):
+    _populate_plate(tmp_path)                 # 4 parsable files
+    (tmp_path / "notes.csv").write_text("irrelevant\n")   # stray, must be ignored
+    from src.io.plate_loader import count_plate_files
+    calls: list[int] = []
+    load_plate(tmp_path, progress=lambda d, t, n: calls.append(d))
+    assert count_plate_files(tmp_path) == 4
+    assert len(calls) == 4                     # stray not counted, not parsed
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -207,15 +213,15 @@ def test_load_plate_cancel_aborts_before_reading_remaining(tmp_path):
 Run: `pytest tests/io/test_plate_loader.py::test_load_plate_reports_progress_once_per_file -v`
 Expected: FAIL with `TypeError: load_plate() got an unexpected keyword argument 'progress'`
 
-- [ ] **Step 3: Implement progress + total in `load_plate`**
+- [ ] **Step 3: Implement progress + total + shared predicate**
 
-In `src/io/plate_loader.py`, update the import line:
+In `src/io/plate_loader.py`, update the schema import:
 
 ```python
 from src.io.schema import InvalidPlateFolderError, ProgressCallback
 ```
 
-Add a shared predicate above `load_plate` (DRY — reused by `count_plate_files` and the loop):
+Add the shared predicate + counter above `load_plate`:
 
 ```python
 def _is_plate_file(entry: Path) -> bool:
@@ -234,7 +240,7 @@ def count_plate_files(folder: Path | str) -> int:
     return sum(1 for entry in folder_path.iterdir() if _is_plate_file(entry))
 ```
 
-Replace the body of `load_plate` (keep the docstring) with a version that collects the files first, then reports progress per file:
+Replace `load_plate`'s body (keep the existing docstring) with:
 
 ```python
 def load_plate(
@@ -247,7 +253,6 @@ def load_plate(
     if not folder_path.is_dir():
         raise InvalidPlateFolderError(path=folder_path, reason="not_a_dir")
 
-    # Collect the files we will parse first so progress knows the total.
     to_parse = [entry for entry in sorted(folder_path.iterdir()) if _is_plate_file(entry)]
     total = len(to_parse)
 
@@ -278,28 +283,44 @@ def load_plate(
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/io/test_plate_loader.py -v`
-Expected: PASS (all, including the 3 new tests and the 7 existing ones)
+Expected: PASS (all new + existing)
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add src/io/plate_loader.py tests/io/test_plate_loader.py
-git commit -m "feat(io): report per-file progress and expose count_plate_files in load_plate"
+git commit -m "feat(io): per-file progress + count_plate_files in load_plate"
 ```
 
 ---
 
-## Task 4: Thread progress through `pipeline.load_plates`
+## Task 4: Global progress + cancel propagation in `load_plates`
 
 **Files:**
 - Modify: `src/core/pipeline.py`
-- Test: `tests/core/test_pipeline.py`
+- Test: `tests/core/test_pipeline.py`, `tests/core/conftest.py`
 
-Aggregate into **one** monotonic bar `0..grand_total` across all cache-miss folders; cancellation propagates; cache hits report no progress.
+One monotonic bar `0..grand_total`; `base` advances by a folder's full size on **every** outcome (success/error) so a corrupt CSV mid-folder cannot drive the bar backwards or stall it. `_is_cached` is **removed** (the up-front sum is correct even for duplicate folders).
 
-- [ ] **Step 1: Write the failing tests**
+- [ ] **Step 1: Add the cache-reset fixture + write the failing tests**
 
-At the top of `tests/core/test_pipeline.py`, add `pytest` to the imports:
+Append to `tests/core/conftest.py`:
+
+```python
+import pytest
+
+from src.core import pipeline
+
+
+@pytest.fixture(autouse=True)
+def _clear_load_cache():
+    """Keep the module-level LRU from leaking state across tests."""
+    pipeline._LOAD_CACHE.clear()
+    yield
+    pipeline._LOAD_CACHE.clear()
+```
+
+At the top of `tests/core/test_pipeline.py` add:
 
 ```python
 import pytest
@@ -331,20 +352,37 @@ def test_load_plates_progress_is_one_global_bar_across_folders(tmp_path):
         [("Platte 1", str(f1)), ("Platte 2", str(f2))],
         progress=lambda done, total, name: seen.append((done, total)),
     )
-    totals = {t for _, t in seen}
-    seq = [d for d, _ in seen]
-    assert totals == {4}                 # single global total, not per-folder
-    assert seq == [1, 2, 3, 4]           # monotonic to grand total
+    assert [d for d, _ in seen] == [1, 2, 3, 4]
+    assert all(t == 4 for _, t in seen)
 
 
 def test_load_plates_cache_hit_reports_no_progress(tmp_path):
     from tests.core.conftest import make_plate_folder
 
     folder = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
-    load_plates([("Platte 1", str(folder))])           # warm the LRU cache
+    load_plates([("Platte 1", str(folder))])           # warm the LRU
     calls: list[str] = []
     load_plates([("Platte 1", str(folder))], progress=lambda d, t, n: calls.append(n))
-    assert calls == []                                  # served from cache
+    assert calls == []
+
+
+def test_load_plates_progress_monotonic_when_a_folder_errors(tmp_path):
+    from tests.core.conftest import make_plate_folder
+
+    good = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})     # 2 files
+    bad = tmp_path / "p2"
+    bad.mkdir()
+    (bad / "x0-y0.csv").write_text("# junk\nFrequenz_Hz,PSD_X_g2Hz\n0.0,1e-3\n1.0,1e-3\n")
+    seen: list[tuple[int, int]] = []
+    out = load_plates(
+        [("Platte 1", str(good)), ("Platte 2", str(bad))],
+        progress=lambda d, t, n: seen.append((d, t)),
+    )
+    dones = [d for d, _ in seen]
+    assert dones == [1, 2, 3]                  # monotonic, never backwards
+    assert all(t == 3 for _, t in seen)        # grand_total stable
+    assert "Platte 2" not in out.plates
+    assert len(out.errors) == 1
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -354,19 +392,24 @@ Expected: FAIL with `TypeError: load_plates() got an unexpected keyword argument
 
 - [ ] **Step 3: Implement the threading + aggregation**
 
-In `src/core/pipeline.py`, update the imports:
+In `src/core/pipeline.py`, update imports:
 
 ```python
 from src.io.plate_loader import LoadResult, count_plate_files, load_plate
 from src.io.schema import AccVizError, LoadCancelled, ProgressCallback
 ```
 
-Add a cache-membership helper next to `_cached_load`:
+Add a pyright-clean closure factory next to `_cached_load`:
 
 ```python
-def _is_cached(folder: str) -> bool:
-    """True when a current (folder, newest-mtime) entry is already in the LRU."""
-    return (folder, _folder_mtime_token(folder)) in _LOAD_CACHE
+def _make_inner(
+    progress: ProgressCallback, base: int, grand_total: int
+) -> ProgressCallback:
+    """Offset a per-folder callback into the global 0..grand_total bar."""
+    def inner(i: int, _total: int, name: str) -> None:
+        progress(base + i, grand_total, name)
+
+    return inner
 ```
 
 Give `_cached_load` an optional `progress` it forwards on a miss only:
@@ -387,7 +430,7 @@ def _cached_load(folder: str, *, progress: ProgressCallback | None = None) -> Lo
     return result
 ```
 
-Rewrite `load_plates` to thread a global, offset progress and propagate cancellation:
+Rewrite `load_plates`:
 
 ```python
 def load_plates(
@@ -397,37 +440,36 @@ def load_plates(
     warnings: list[str] = []
     errors: list[str] = []
 
-    # One global progress bar across folders that will actually be parsed
-    # (cache hits contribute nothing — they return instantly).
-    grand_total = 0
-    if progress is not None:
-        grand_total = sum(
-            count_plate_files(folder) for _, folder in folders if not _is_cached(folder)
-        )
+    # One global progress bar 0..grand_total. Counts are taken once up front so
+    # `base` can advance by a folder's full size on EVERY outcome (success OR
+    # error), keeping the bar monotonic and always reaching the total.
+    counts = (
+        [count_plate_files(folder) for _, folder in folders]
+        if progress is not None
+        else []
+    )
+    grand_total = sum(counts)
     base = 0
 
-    for label, folder in folders:
-        was_cached = progress is None or _is_cached(folder)
-        inner: ProgressCallback | None = None
-        if progress is not None and not was_cached:
-            def inner(i: int, _total: int, name: str, _base: int = base) -> None:
-                progress(_base + i, grand_total, name)
-
+    for idx, (label, folder) in enumerate(folders):
+        inner = _make_inner(progress, base, grand_total) if progress is not None else None
+        result: LoadResult | None = None
         try:
             result = _cached_load(folder, progress=inner)
         except LoadCancelled:
-            raise  # MUST precede the AccVizError/Exception handlers below
+            raise  # MUST precede the AccVizError/Exception handlers
         except AccVizError as exc:
             _LOG.warning("Plate %s load failed: %s", label, exc)
             errors.append(format_error(exc, plate_label=label))
-            continue
         except Exception as exc:  # defensive: surface unexpected errors
             _LOG.exception("Unexpected error loading plate %s", label)
             errors.append(S.ERROR_GENERIC_PLATE.format(label=label, detail=str(exc)))
-            continue
+        finally:
+            if progress is not None:
+                base += counts[idx]
 
-        if progress is not None and not was_cached:
-            base += count_plate_files(folder)
+        if result is None:
+            continue
         for w in result.warnings:
             warnings.append(f"{label}: {w}")
         plates[label] = (result.hole_data, result.ref_df)
@@ -438,13 +480,13 @@ def load_plates(
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/core/test_pipeline.py -v`
-Expected: PASS (all, including the 3 new tests)
+Expected: PASS (all new + existing)
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/core/pipeline.py tests/core/test_pipeline.py
-git commit -m "feat(core): thread cancellable global progress through load_plates"
+git add src/core/pipeline.py tests/core/test_pipeline.py tests/core/conftest.py
+git commit -m "feat(core): one global cancellable progress bar in load_plates"
 ```
 
 ---
@@ -488,7 +530,7 @@ LOAD_CANCELLED = "Laden abgebrochen"
 - [ ] **Step 4: Run test to verify it passes**
 
 Run: `pytest tests/core/test_strings.py -v`
-Expected: PASS (all)
+Expected: PASS
 
 - [ ] **Step 5: Commit**
 
@@ -499,13 +541,13 @@ git commit -m "feat(core): add progress-dialog UI strings"
 
 ---
 
-## Task 6: `load_with_progress` helper (Qt dialog driver)
+## Task 6: `load_with_progress` helper (lazy modal dialog)
 
 **Files:**
 - Create: `src/desktop/load_progress.py`
 - Test: `tests/desktop/test_load_progress.py`
 
-The helper owns all Qt specifics (dialog, `processEvents`, `wasCanceled`) and returns `None` on cancel. A `dialog_factory` seam lets tests inject a fake dialog (no real widget needed).
+The dialog is constructed **lazily on the first progress tick**, so cache hits / tiny folders create no widget and never flicker. A `dialog_factory` seam lets tests inject a fake (no real widget).
 
 - [ ] **Step 1: Write the failing tests**
 
@@ -545,27 +587,43 @@ def test_load_with_progress_drives_dialog_and_returns_load(qapp, tmp_path):
 
     folder = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
     fake = FakeDialog()
-    load = load_with_progress(
-        None, [("Platte 1", str(folder))], dialog_factory=lambda: fake
-    )
+    load = load_with_progress(None, [("Platte 1", str(folder))], dialog_factory=lambda: fake)
     assert load is not None
     assert "Platte 1" in load.plates
     assert fake.range == (0, 2)
-    assert fake.values == [1, 2]        # one update per file
+    assert fake.values == [1, 2]
     assert fake.closed is True
+
+
+def test_load_with_progress_no_files_creates_no_dialog(qapp, tmp_path):
+    # A folder served from cache reports zero progress -> no widget at all.
+    from tests.core.conftest import make_plate_folder
+    from src.core.pipeline import load_plates
+
+    folder = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
+    load_plates([("Platte 1", str(folder))])           # warm cache
+    created = {"n": 0}
+
+    def factory():
+        created["n"] += 1
+        return FakeDialog()
+
+    load = load_with_progress(None, [("Platte 1", str(folder))], dialog_factory=factory)
+    assert load is not None
+    assert created["n"] == 0                            # never constructed
 
 
 def test_load_with_progress_cancel_returns_none(qapp, tmp_path):
     from tests.core.conftest import make_plate_folder
 
     folder = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
-    fake = FakeDialog(cancel_after=1)   # report canceled right after the first file
-    load = load_with_progress(
-        None, [("Platte 1", str(folder))], dialog_factory=lambda: fake
-    )
+    fake = FakeDialog(cancel_after=1)
+    load = load_with_progress(None, [("Platte 1", str(folder))], dialog_factory=lambda: fake)
     assert load is None
     assert fake.closed is True
 ```
+
+> Note: the `qapp` fixture (offscreen) comes from `tests/desktop/conftest.py`; the `_clear_load_cache` autouse fixture from Task 4 lives in `tests/core/conftest.py` and does NOT apply here, so `test_load_with_progress_no_files_creates_no_dialog` warms and reads the cache within one test (order-independent).
 
 - [ ] **Step 2: Run tests to verify they fail**
 
@@ -604,24 +662,25 @@ def load_with_progress(
     """Load ``folders`` while driving a modal progress dialog.
 
     Returns the :class:`PlateLoad`, or ``None`` if the user cancelled. The dialog
-    only becomes visible once loading exceeds ~400 ms, so cache hits and small
-    folders never flicker.
+    is built lazily on the first progress tick, so cache hits / small folders
+    create no widget and never flicker.
     """
     def _default_factory() -> QProgressDialog:
         return QProgressDialog(S.LOAD_PROGRESS_TITLE, S.LOAD_CANCEL, 0, 0, parent)
 
-    dlg = (dialog_factory or _default_factory)()
-    dlg.setWindowModality(Qt.WindowModality.WindowModal)
-    dlg.setMinimumDuration(400)
-    dlg.setAutoClose(False)
-    dlg.setAutoReset(False)
-
-    range_set = {"done": False}
+    factory = dialog_factory or _default_factory
+    holder: dict[str, QProgressDialog] = {}
 
     def on_progress(done: int, total: int, name: str) -> None:
-        if not range_set["done"]:
+        dlg = holder.get("dlg")
+        if dlg is None:
+            dlg = factory()
+            dlg.setWindowModality(Qt.WindowModality.ApplicationModal)
+            dlg.setMinimumDuration(400)
+            dlg.setAutoClose(False)
+            dlg.setAutoReset(False)
             dlg.setRange(0, total)
-            range_set["done"] = True
+            holder["dlg"] = dlg
         dlg.setValue(done)
         dlg.setLabelText(S.LOAD_PROGRESS_LABEL.format(i=done, n=total))
         QApplication.processEvents()
@@ -633,27 +692,98 @@ def load_with_progress(
     except LoadCancelled:
         return None
     finally:
-        dlg.close()
+        dlg = holder.get("dlg")
+        if dlg is not None:
+            dlg.close()
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `pytest tests/desktop/test_load_progress.py -v`
-Expected: PASS (both)
+Expected: PASS (all three)
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add src/desktop/load_progress.py tests/desktop/test_load_progress.py
-git commit -m "feat(desktop): add load_with_progress modal dialog helper"
+git commit -m "feat(desktop): lazy modal load_with_progress dialog helper"
 ```
 
 ---
 
-## Task 7: Wire `load_with_progress` into `MainWindow._refresh`
+## Task 7: `ControlPanel` folder-text snapshot / restore
 
 **Files:**
-- Modify: `src/desktop/main_window.py:24-39` (imports) and `:126-138` (`_refresh` load branch)
+- Modify: `src/desktop/control_panel.py`
+- Test: `tests/desktop/test_control_panel.py`
+
+Needed for Option-A cancel: snapshot the raw folder field text and restore it **without** re-emitting `settingsChanged`.
+
+- [ ] **Step 1: Write the failing tests**
+
+Append to `tests/desktop/test_control_panel.py`:
+
+```python
+def test_folder_texts_round_trip(qapp):
+    from src.desktop.control_panel import ControlPanel
+
+    panel = ControlPanel()
+    panel.set_folder(0, "/a")
+    panel.set_folder(1, "/b")
+    assert panel.folder_texts() == ["/a", "/b"]
+
+
+def test_restore_folder_texts_emits_no_signal(qapp):
+    from src.desktop.control_panel import ControlPanel
+
+    panel = ControlPanel()
+    fired: list[int] = []
+    panel.settingsChanged.connect(lambda: fired.append(1))
+    panel.restore_folder_texts(["/x", "/y"])
+    assert panel.folder_texts() == ["/x", "/y"]
+    assert fired == []
+```
+
+- [ ] **Step 2: Run tests to verify they fail**
+
+Run: `pytest tests/desktop/test_control_panel.py::test_folder_texts_round_trip -v`
+Expected: FAIL with `AttributeError: 'ControlPanel' object has no attribute 'folder_texts'`
+
+- [ ] **Step 3: Add the methods**
+
+In `src/desktop/control_panel.py`, add to the `# --- programmatic setters` section:
+
+```python
+    def folder_texts(self) -> list[str]:
+        """Return the raw text of each folder input (for snapshot/restore)."""
+        return [edit.text() for edit in self._folder_edits]
+
+    def restore_folder_texts(self, texts: list[str]) -> None:
+        """Restore folder inputs without emitting settingsChanged."""
+        for edit, text in zip(self._folder_edits, texts):
+            edit.blockSignals(True)
+            edit.setText(text)
+            edit.blockSignals(False)
+```
+
+- [ ] **Step 4: Run tests to verify they pass**
+
+Run: `pytest tests/desktop/test_control_panel.py -v`
+Expected: PASS (all)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add src/desktop/control_panel.py tests/desktop/test_control_panel.py
+git commit -m "feat(desktop): folder-text snapshot/restore on ControlPanel"
+```
+
+---
+
+## Task 8: Wire into `MainWindow._refresh` (guard + Option-A cancel)
+
+**Files:**
+- Modify: `src/desktop/main_window.py` (imports `:24-39`; `__init__` `:92-103`; `_refresh` `:107-138`)
 - Test: `tests/desktop/test_main_window.py`
 
 - [ ] **Step 1: Write the failing test**
@@ -661,43 +791,38 @@ git commit -m "feat(desktop): add load_with_progress modal dialog helper"
 Append to `tests/desktop/test_main_window.py`:
 
 ```python
-def test_refresh_cancel_keeps_previous_state(qapp, tmp_path, monkeypatch):
+def test_refresh_cancel_reverts_field_and_keeps_state(qapp, tmp_path, monkeypatch):
     from src.desktop import main_window as mw
+    from src.core import strings as S
     from tests.core.conftest import make_plate_folder
 
     folder = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
     win = MainWindow()
-    win.control_panel.set_folder(0, str(folder))   # successful load + analyze
+    win.control_panel.set_folder(0, str(folder))     # successful load + analyze
     assert win._analysis is not None
     prior_analysis = win._analysis
     prior_load = win._load
+    good_texts = win.control_panel.folder_texts()
 
-    # Next reload is cancelled: stub the helper to report a cancellation.
+    # Next reload is cancelled.
     monkeypatch.setattr(mw, "load_with_progress", lambda *a, **k: None)
     folder2 = make_plate_folder(tmp_path / "p2", {(0, 0): 2e-3, (1, 1): 5e-3})
-    win.control_panel.set_folder(1, str(folder2))  # folders change -> reload -> cancel
+    win.control_panel.set_folder(1, str(folder2))    # folders change -> reload -> cancel
 
-    assert win._analysis is prior_analysis          # view state untouched
+    assert win._analysis is prior_analysis            # view untouched
     assert win._load is prior_load
+    assert win.control_panel.folder_texts() == good_texts   # field reverted (Option A)
+    assert S.LOAD_CANCELLED in win.statusBar().currentMessage()
 ```
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `pytest tests/desktop/test_main_window.py::test_refresh_cancel_keeps_previous_state -v`
-Expected: FAIL — `AttributeError: module 'src.desktop.main_window' has no attribute 'load_with_progress'` (helper not imported yet)
+Run: `pytest tests/desktop/test_main_window.py::test_refresh_cancel_reverts_field_and_keeps_state -v`
+Expected: FAIL — `AttributeError: module 'src.desktop.main_window' has no attribute 'load_with_progress'`
 
 - [ ] **Step 3: Wire the helper in**
 
-In `src/desktop/main_window.py`, replace the `load_plates` import in the `from src.core.pipeline import (...)` block — i.e. remove `load_plates` from that import list — and add a top-level import (so it is monkeypatchable as `main_window.load_with_progress`):
-
-```python
-from src.desktop.control_panel import ControlPanel
-from src.desktop.export import prompt_export
-from src.desktop.load_progress import load_with_progress
-from src.desktop.manual_dialog import ManualDialog
-```
-
-The pipeline import block becomes (note: no `load_plates`):
+In `src/desktop/main_window.py`, remove `load_plates` from the `from src.core.pipeline import (...)` block:
 
 ```python
 from src.core.pipeline import (
@@ -710,19 +835,49 @@ from src.core.pipeline import (
 )
 ```
 
-In `_refresh`, replace the folder-load branch:
+Add the top-level helper import (so it is monkeypatchable as `main_window.load_with_progress`):
+
+```python
+from src.desktop.control_panel import ControlPanel
+from src.desktop.export import prompt_export
+from src.desktop.load_progress import load_with_progress
+from src.desktop.manual_dialog import ManualDialog
+```
+
+In `__init__`, alongside the other state fields (near `self._settings: Settings | None = None`):
+
+```python
+        self._is_loading = False
+        self._last_good_folder_texts = self._control_panel.folder_texts()
+```
+
+In `_refresh`, add the guard as the very first statement:
+
+```python
+    def _refresh(self) -> None:
+        if self._is_loading:
+            return
+```
+
+Replace the folder-load branch with:
 
 ```python
         folders_changed = prev is None or prev.folders != settings.folders
         load = self._load
         if folders_changed or load is None:
-            loaded = load_with_progress(self, settings.folders)
+            self._is_loading = True
+            try:
+                loaded = load_with_progress(self, settings.folders)
+            finally:
+                self._is_loading = False
             if loaded is None:
-                # Laden abgebrochen: vorherigen Zustand behalten und einen
-                # erneuten (identischen) settingsChanged wieder laden lassen.
+                # Option-A cancel: fully revert folder field AND view to the last
+                # good state (blockSignals prevents an immediate reload).
+                self._control_panel.restore_folder_texts(self._last_good_folder_texts)
                 self._settings = prev
                 self.statusBar().showMessage(S.LOAD_CANCELLED, 6000)
                 return
+            self._last_good_folder_texts = self._control_panel.folder_texts()
             load = loaded
             self._load = load
             self.statusBar().clearMessage()
@@ -730,42 +885,44 @@ In `_refresh`, replace the folder-load branch:
                 self.statusBar().showMessage(msg, 10000)
 ```
 
+(The `WaitCursor` block around `analyze()` below is unchanged.)
+
 - [ ] **Step 4: Run the desktop suite to verify it passes**
 
-Run: `pytest tests/desktop/test_main_window.py -v`
-Expected: PASS (all, including the new cancel test and the existing load/cursor tests)
+Run: `pytest tests/desktop/ -v`
+Expected: PASS (new cancel test + all existing, including `test_refresh_loads_and_analyzes_real_plate` and `test_refresh_resets_override_cursor`)
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add src/desktop/main_window.py tests/desktop/test_main_window.py
-git commit -m "feat(desktop): load folders via cancellable progress dialog in MainWindow"
+git commit -m "feat(desktop): cancellable progress load with re-entrancy guard in MainWindow"
 ```
 
 ---
 
-## Task 8: Full verification
+## Task 9: Full verification
 
 **Files:** none (verification only)
 
 - [ ] **Step 1: Run the entire test suite**
 
 Run: `pytest -q`
-Expected: PASS, no failures (≈ existing count + 11 new tests).
+Expected: PASS — baseline was **166**; this plan adds **13** tests → **~179**, no failures.
 
-- [ ] **Step 2: Type-check (CI gate)**
+- [ ] **Step 2: Type-check (CI gate, pinned pyright 1.1.410)**
 
 Run: `pyright`
-Expected: 0 errors (matches the CI type-check gate).
+Expected: 0 errors. (Watch the `_make_inner` factory and `result: LoadResult | None = None` — they exist specifically to keep pyright clean.)
 
 - [ ] **Step 3: Headless app smoke test**
 
 Run: `ACC_VIZ_SMOKE=1 python3 desktop_main.py`
-Expected: exits 0 after ~1.5 s with a logged "Desktop app started" and no traceback.
+Expected: exits 0 after ~1.5 s, logs "Desktop app started", no traceback.
 
 - [ ] **Step 4: Manual check (if a real plate folder is available)**
 
-Run: `python3 desktop_main.py`, pick a 50–70-file folder. Verify: modal "Lade Messdateien…" appears after a moment, the "Datei i von N" bar advances, the window stays responsive (no "Keine Rückmeldung"), and **Abbrechen** stops the load while keeping the prior view. Re-loading the same folder shows no dialog flicker (cache hit).
+`python3 desktop_main.py`, pick a 50–70-file folder. Verify: modal "Lade Messdateien…" after a moment, "Datei i von N" advances, window stays responsive (no "Keine Rückmeldung"), **Abbrechen** stops the load and reverts both the folder field and the view to the previous state, and re-loading the same folder shows no flicker (cache hit).
 
 - [ ] **Step 5: Commit any verification fixes** (only if Steps 1–3 surfaced issues)
 
@@ -776,33 +933,33 @@ git commit -m "fix: address verification findings for folder-load progress"
 
 ---
 
-## Task 9: Version bump + release (MINOR: 0.5.1 → 0.6.0)
+## Task 10: Integrate to master, then version bump + release (MINOR 0.5.1 → 0.6.0)
 
-A new backward-compatible feature ⇒ MINOR bump per the project versioning rule.
+A new backward-compatible feature ⇒ MINOR bump. **Merge to `master` first**, then bump+tag on the integration commit (so `v0.6.0` is an ancestor of `master`, not stranded on the feature branch).
 
-**Files:**
-- Modify: `pyproject.toml` (`version`), `README.md` (version badge)
-- Test: `tests/test_packaging_build.py` (if it asserts the version — otherwise none)
+- [ ] **Step 1: Integrate the feature branch**
 
-- [ ] **Step 1: Confirm current version + no existing tag**
+Use superpowers:finishing-a-development-branch to merge `feature/folder-load-progress` into `master` (direct merge, no PR — per the user's choice). Ensure `master` is checked out and green afterward:
+
+Run: `git checkout master && git merge --no-ff feature/folder-load-progress && pytest -q`
+Expected: clean merge, tests PASS.
+
+- [ ] **Step 2: Confirm version + no existing tag**
 
 Run: `grep -n '^version' pyproject.toml && git tag -l v0.6.0`
 Expected: `version = "0.5.1"`, and `v0.6.0` not listed.
 
-- [ ] **Step 2: Bump `pyproject.toml`**
+- [ ] **Step 3: Bump `pyproject.toml` + README badge**
 
-Change `version = "0.5.1"` → `version = "0.6.0"`.
+`pyproject.toml`: `version = "0.5.1"` → `version = "0.6.0"`.
+`README.md`: `version-0.5.1-blue` → `version-0.6.0-blue`.
 
-- [ ] **Step 3: Bump the README badge**
-
-In `README.md`, change `version-0.5.1-blue` → `version-0.6.0-blue`.
-
-- [ ] **Step 4: Verify consistency + tests still green**
+- [ ] **Step 4: Verify consistency + tests green**
 
 Run: `pytest -q && grep -rn "0.6.0" pyproject.toml README.md`
 Expected: tests PASS; both files show `0.6.0`.
 
-- [ ] **Step 5: Commit, tag, push**
+- [ ] **Step 5: Commit, tag, push (versioning sync — pre-authorized)**
 
 ```bash
 git add pyproject.toml README.md
@@ -811,14 +968,16 @@ git tag -a v0.6.0 -m "v0.6.0"
 git push --follow-tags
 ```
 
-(Per the project versioning rule this push is pre-authorized. Note: `main`/`master` integration of the feature branch happens via superpowers:finishing-a-development-branch **before** this tag if the team merges first — adjust the branch the tag lands on accordingly.)
-
 ---
 
 ## Notes for the executor
 
-- **TDD discipline:** every task is red → green → commit. Task 2 is a behavior-preserving refactor, so its test is green before and after (it guards against regression rather than failing first).
-- **Progress index convention:** `progress(i, total, name)` uses a **1-based** `i`, called **before** reading file `i`. Tests in Tasks 3–4 lock this in.
-- **`LoadCancelled` ordering:** in `load_plates`, `except LoadCancelled: raise` MUST come before `except AccVizError` / `except Exception`, or cancellation gets turned into a per-plate error string.
-- **Why the helper is injectable:** `dialog_factory` keeps the dialog driver testable without a real `QProgressDialog`; `load_with_progress` is imported at module top in `main_window.py` so it can be monkeypatched in the cancel test.
+- **TDD discipline:** every task is red → green → commit. Task 2 is a behavior-preserving refactor, so its test is green before and after (regression guard, not red-first).
+- **Progress convention:** `progress(i, total, name)` — 1-based `i`, called **before** reading file `i`. Locked by Tasks 3–4.
+- **`LoadCancelled` ordering:** in `load_plates`, `except LoadCancelled: raise` MUST precede `except AccVizError` / `except Exception`.
+- **`base` advances on every outcome** (the `finally`) — that is what keeps the bar monotonic when a folder errors mid-load and when the same folder is picked twice. Do not "optimize" it back behind a success check.
+- **Lazy dialog + `_is_loading` guard** are load-bearing: queued signals fire during `processEvents` (empirically confirmed), so the guard prevents re-entrant `_refresh`, and lazy construction keeps cache hits widget-free and existing fast tests dialog-free.
+- **Monkeypatch target:** `load_with_progress` is imported at module top in `main_window.py` so the cancel test can patch `main_window.load_with_progress`.
 - **Out of scope (YAGNI):** background threads / parallel reads (Variante ②), `usecols`, moving `analyze()` off-thread.
+```
+
