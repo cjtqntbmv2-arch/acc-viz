@@ -65,3 +65,27 @@ def test_show_manual_opens_dialog(qapp, monkeypatch):
     win._manual_action.trigger()
     assert created.get("exec") is True
     assert created["parent"] is win
+
+
+def test_refresh_cancel_reverts_field_and_keeps_state(qapp, tmp_path, monkeypatch):
+    from src.desktop import main_window as mw
+    from src.core import strings as S
+    from tests.core.conftest import make_plate_folder
+
+    folder = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
+    win = MainWindow()
+    win.control_panel.set_folder(0, str(folder))     # successful load + analyze
+    assert win._analysis is not None
+    prior_analysis = win._analysis
+    prior_load = win._load
+    good_texts = win.control_panel.folder_texts()
+
+    # Next reload is cancelled.
+    monkeypatch.setattr(mw, "load_with_progress", lambda *a, **k: None)
+    folder2 = make_plate_folder(tmp_path / "p2", {(0, 0): 2e-3, (1, 1): 5e-3})
+    win.control_panel.set_folder(1, str(folder2))    # folders change -> reload -> cancel
+
+    assert win._analysis is prior_analysis            # view untouched
+    assert win._load is prior_load
+    assert win.control_panel.folder_texts() == good_texts   # field reverted (Option A)
+    assert S.LOAD_CANCELLED in win.statusBar().currentMessage()
