@@ -2,6 +2,7 @@ from __future__ import annotations
 
 """Shared CSV column schema and domain-specific exception types."""
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
@@ -62,3 +63,16 @@ class CsvContentError(AccVizError):
 
     def __str__(self) -> str:
         return f"CSV content error ({self.reason}): {self.path}"
+
+
+# (done_files, total_files, current_filename) — UI-agnostic progress signal.
+ProgressCallback = Callable[[int, int, str], None]
+
+
+class LoadCancelled(Exception):
+    """Raised by a progress callback to abort an in-flight load.
+
+    Deliberately **not** an :class:`AccVizError`: :func:`load_plates` converts
+    ``AccVizError`` per plate into user-facing error strings, whereas a
+    cancellation must propagate out instead of being swallowed.
+    """
