@@ -67,3 +67,45 @@ def test_case_insensitive_reference_lookup(tmp_path):
     write_csv(tmp_path / "REFERENZ.CSV", ROWS)
     result = load_plate(tmp_path)
     assert result.ref_df is not None
+
+
+def test_load_plate_reports_progress_once_per_file(tmp_path):
+    _populate_plate(tmp_path)  # 3 hole files + Referenz.csv = 4 files
+    calls: list[tuple[int, int, str]] = []
+    load_plate(tmp_path, progress=lambda done, total, name: calls.append((done, total, name)))
+    dones = [c[0] for c in calls]
+    assert dones == [1, 2, 3, 4]
+    assert all(c[1] == 4 for c in calls)
+    assert all(c[2].lower().endswith(".csv") for c in calls)
+
+
+def test_load_plate_without_progress_is_unchanged(tmp_path):
+    _populate_plate(tmp_path)
+    result = load_plate(tmp_path)
+    assert set(result.hole_data.keys()) == {(1, 1), (1, 2), (2, 1)}
+
+
+def test_load_plate_cancel_aborts_before_reading_remaining(tmp_path):
+    from src.io.schema import LoadCancelled
+
+    _populate_plate(tmp_path)
+    seen: list[str] = []
+
+    def cb(done, total, name):
+        seen.append(name)
+        if done == 2:
+            raise LoadCancelled
+
+    with pytest.raises(LoadCancelled):
+        load_plate(tmp_path, progress=cb)
+    assert len(seen) == 2
+
+
+def test_count_plate_files_matches_parsed_count_ignoring_strays(tmp_path):
+    _populate_plate(tmp_path)                 # 4 parsable files
+    (tmp_path / "notes.csv").write_text("irrelevant\n")   # stray, must be ignored
+    from src.io.plate_loader import count_plate_files
+    calls: list[int] = []
+    load_plate(tmp_path, progress=lambda d, t, n: calls.append(d))
+    assert count_plate_files(tmp_path) == 4
+    assert len(calls) == 4
