@@ -148,7 +148,9 @@ def load_plates(
 
     # One global progress bar 0..grand_total. Counts are taken once up front so
     # `base` can advance by a folder's full size on EVERY outcome (success OR
-    # error), keeping the bar monotonic and always reaching the total.
+    # error), keeping the bar monotonic and always reaching the total. The count
+    # is a best-effort snapshot; if a folder's files change mid-load the bar may
+    # not land exactly on 100% (QProgressDialog clamps harmlessly).
     counts = (
         [count_plate_files(folder) for _, folder in folders]
         if progress is not None

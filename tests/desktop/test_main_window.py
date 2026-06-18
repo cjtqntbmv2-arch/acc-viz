@@ -89,3 +89,29 @@ def test_refresh_cancel_reverts_field_and_keeps_state(qapp, tmp_path, monkeypatc
     assert win._load is prior_load
     assert win.control_panel.folder_texts() == good_texts   # field reverted (Option A)
     assert S.LOAD_CANCELLED in win.statusBar().currentMessage()
+
+
+def test_refresh_cancel_then_repick_reloads(qapp, tmp_path, monkeypatch):
+    from src.desktop import main_window as mw
+    from tests.core.conftest import make_plate_folder
+
+    f1 = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
+    win = MainWindow()
+    win.control_panel.set_folder(0, str(f1))          # initial successful load
+    assert win._analysis is not None
+    first_analysis = win._analysis
+
+    real_load = mw.load_with_progress                 # capture before patching
+
+    # Cancel a reload to a second folder; field + view must revert.
+    monkeypatch.setattr(mw, "load_with_progress", lambda *a, **k: None)
+    f2 = make_plate_folder(tmp_path / "p2", {(0, 0): 9e-3, (1, 1): 9e-3})
+    win.control_panel.set_folder(1, str(f2))          # reload -> cancelled
+    assert win.control_panel.folder_texts() == [str(f1), ""]
+    assert win._analysis is first_analysis
+
+    # Restore the real loader and re-pick the SAME folder2: it must now load.
+    monkeypatch.setattr(mw, "load_with_progress", real_load)
+    win.control_panel.set_folder(1, str(f2))
+    assert win._analysis is not first_analysis
+    assert "Platte 2" in win._analysis.grids

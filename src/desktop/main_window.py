@@ -137,7 +137,8 @@ class MainWindow(QMainWindow):
                 self._is_loading = False
             if loaded is None:
                 # Option-A cancel: fully revert folder field AND view to the last
-                # good state (blockSignals prevents an immediate reload).
+                # good state. restore_folder_texts() blocks signals internally, so
+                # this revert does not re-trigger _refresh.
                 self._control_panel.restore_folder_texts(self._last_good_folder_texts)
                 self._settings = prev
                 self.statusBar().showMessage(S.LOAD_CANCELLED, 6000)
