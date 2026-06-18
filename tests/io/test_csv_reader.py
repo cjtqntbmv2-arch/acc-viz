@@ -104,3 +104,13 @@ def test_no_header_marker_raises_parse_error(tmp_path):
     with pytest.raises(CsvReadError) as ei:
         read_measurement_csv(p)
     assert ei.value.reason == "parse"
+
+
+def test_parses_many_rows_semicolon_decimal_comma(tmp_path):
+    rows = [(float(i), 1e-3, 2e-3, 3e-3) for i in range(2000)]
+    p = tmp_path / "x1-y1.csv"
+    write_csv(p, rows, sep=";", decimal=",", encoding="cp1252")
+    df = read_measurement_csv(p)
+    assert len(df) == 2000
+    assert list(df.columns) == ["Frequenz_Hz", "PSD_X_g2Hz", "PSD_Y_g2Hz", "PSD_Z_g2Hz"]
+    assert math.isclose(df["PSD_Z_g2Hz"].iloc[-1], 3e-3)

@@ -72,7 +72,7 @@ def read_measurement_csv(path: Path) -> pd.DataFrame:
             skiprows=header_idx,
             sep=sep,
             decimal=decimal,
-            engine="python",
+            engine="c",
         )
     except (pd.errors.ParserError, pd.errors.EmptyDataError, UnicodeDecodeError, ValueError) as e:
         raise CsvReadError(path=Path(path), reason="parse") from e
