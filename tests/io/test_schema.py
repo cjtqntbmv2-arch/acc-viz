@@ -48,3 +48,16 @@ def test_exceptions_populate_args_for_logging():
     exc = InvalidPlateFolderError(path=Path("/tmp/x"), reason="not_exists")
     assert exc.args
     assert str(exc) == exc.args[0] or str(exc) in exc.args[0]
+
+
+def test_load_cancelled_is_plain_exception_not_accviz_error():
+    from src.io.schema import LoadCancelled, AccVizError
+
+    assert issubclass(LoadCancelled, Exception)
+    assert not issubclass(LoadCancelled, AccVizError)
+
+
+def test_progress_callback_alias_is_exported():
+    from src.io import schema
+
+    assert hasattr(schema, "ProgressCallback")

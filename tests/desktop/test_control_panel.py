@@ -85,3 +85,23 @@ def test_f_min_at_ceiling_pulls_itself_below_max(qapp):
     s = panel.current_settings()
     assert s.f_min < s.f_max
     assert s.f_max == 25000
+
+
+def test_folder_texts_round_trip(qapp):
+    from src.desktop.control_panel import ControlPanel
+
+    panel = ControlPanel()
+    panel.set_folder(0, "/a")
+    panel.set_folder(1, "/b")
+    assert panel.folder_texts() == ["/a", "/b"]
+
+
+def test_restore_folder_texts_emits_no_signal(qapp):
+    from src.desktop.control_panel import ControlPanel
+
+    panel = ControlPanel()
+    fired: list[int] = []
+    panel.settingsChanged.connect(lambda: fired.append(1))
+    panel.restore_folder_texts(["/x", "/y"])
+    assert panel.folder_texts() == ["/x", "/y"]
+    assert fired == []

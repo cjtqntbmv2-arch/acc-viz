@@ -26,13 +26,13 @@ from src.core.pipeline import (
     PlateEntry,
     PlateLoad,
     analyze,
-    load_plates,
     measured_points,
     ref_marker,
 )
 from src.core.settings import Settings
 from src.desktop.control_panel import ControlPanel
 from src.desktop.export import prompt_export
+from src.desktop.load_progress import load_with_progress
 from src.desktop.manual_dialog import ManualDialog
 from src.desktop.plots.heatmap_canvas import HeatmapCanvas
 from src.desktop.plots.histogram_canvas import HistogramCanvas
@@ -92,6 +92,8 @@ class MainWindow(QMainWindow):
         self._settings: Settings | None = None
         self._load: PlateLoad | None = None
         self._analysis: Analysis | None = None
+        self._is_loading = False
+        self._last_good_folder_texts = self._control_panel.folder_texts()
 
         # Per-plate widgets, rebuilt on every render.
         self._heatmaps: dict[str, HeatmapCanvas] = {}
@@ -111,6 +113,8 @@ class MainWindow(QMainWindow):
         when the relevant settings actually changed; a pure no-op emission or a
         display-only change (e.g. colorscale) skips that expensive work.
         """
+        if self._is_loading:
+            return
         settings = self._control_panel.current_settings()
         prev = self._settings
         if prev is not None and settings == prev:
@@ -126,7 +130,21 @@ class MainWindow(QMainWindow):
         folders_changed = prev is None or prev.folders != settings.folders
         load = self._load
         if folders_changed or load is None:
-            load = load_plates(settings.folders)
+            self._is_loading = True
+            try:
+                loaded = load_with_progress(self, settings.folders)
+            finally:
+                self._is_loading = False
+            if loaded is None:
+                # Option-A cancel: fully revert folder field AND view to the last
+                # good state. restore_folder_texts() blocks signals internally, so
+                # this revert does not re-trigger _refresh.
+                self._control_panel.restore_folder_texts(self._last_good_folder_texts)
+                self._settings = prev
+                self.statusBar().showMessage(S.LOAD_CANCELLED, 6000)
+                return
+            self._last_good_folder_texts = self._control_panel.folder_texts()
+            load = loaded
             self._load = load
             self.statusBar().clearMessage()
             for msg in load.errors:

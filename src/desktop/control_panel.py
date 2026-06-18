@@ -249,6 +249,17 @@ class ControlPanel(QWidget):
     def set_folder(self, idx: int, path: str) -> None:
         self._folder_edits[idx].setText(path)
 
+    def folder_texts(self) -> list[str]:
+        """Return the raw text of each folder input (for snapshot/restore)."""
+        return [edit.text() for edit in self._folder_edits]
+
+    def restore_folder_texts(self, texts: list[str]) -> None:
+        """Restore folder inputs without emitting settingsChanged."""
+        for edit, text in zip(self._folder_edits, texts):
+            edit.blockSignals(True)
+            edit.setText(text)
+            edit.blockSignals(False)
+
     def set_axis(self, axis: Axis) -> None:
         for btn in self._axis_group.buttons():
             if btn.property(_AXIS_PROP) == axis:

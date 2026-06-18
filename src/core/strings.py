@@ -134,3 +134,9 @@ MENU_HELP = "Hilfe"
 MENU_HELP_MANUAL = "Anleitung"
 MANUAL_DIALOG_TITLE = "Anleitung — Beschleunigungs-Visualisierung"
 MANUAL_LOAD_ERROR = "Anleitung konnte nicht geladen werden."
+
+# --- Lade-Fortschritt -------------------------------------------------------
+LOAD_PROGRESS_TITLE = "Lade Messdateien…"
+LOAD_PROGRESS_LABEL = "Datei {i} von {n}"
+LOAD_CANCEL = "Abbrechen"
+LOAD_CANCELLED = "Laden abgebrochen"
