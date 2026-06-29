@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 """Native matplotlib heatmap canvas for the application.
 
 An interpolated grid drawn with the selected colormap, white markers at measured
@@ -22,6 +24,7 @@ __all__ = ["HeatmapCanvas", "colorscale_to_cmap", "nearest_cell"]
 
 HOLE_MARKER_SIZE = 70
 REF_STAR_SIZE = 260
+SELECTED_MARKER_SIZE = 220
 
 # Floor height (px) so the plot keeps a readable size and the enclosing
 # QScrollArea scrolls instead of squeezing the canvas.
@@ -139,6 +142,7 @@ class HeatmapCanvas(ScrollPassthroughCanvas):
         self._normalized = False
         self._last_hover: str | None = None
         self.mpl_connect("motion_notify_event", self._on_motion)
+        self._selection_artist = None
 
     def render_grid(
         self,
@@ -152,6 +156,7 @@ class HeatmapCanvas(ScrollPassthroughCanvas):
         hole_values: list[float],
         ref_value: float | None,
         z_range: tuple[float, float] | None,
+        selected: Sequence[tuple[int, int, str]] = (),
     ) -> None:
         """Draw the interpolated grid with hole markers and optional reference star."""
         self._plate_name = plate_name
@@ -166,6 +171,7 @@ class HeatmapCanvas(ScrollPassthroughCanvas):
             self._figure.clear()
             self.axes = self._figure.add_subplot(111)
             self._colorbar = None  # alte Colorbar-Referenz nicht hängen lassen
+            self._selection_artist = None
             self.axes.text(
                 0.5, 0.5, S.HEATMAP_EMPTY,
                 ha="center", va="center", transform=self.axes.transAxes,
@@ -177,6 +183,7 @@ class HeatmapCanvas(ScrollPassthroughCanvas):
             return
 
         self._figure.clear()
+        self._selection_artist = None
         # Empty left column (same width as the colorbar column) balances the
         # colorbar so the square plot is centered in the canvas.
         gs = self._figure.add_gridspec(
@@ -227,12 +234,41 @@ class HeatmapCanvas(ScrollPassthroughCanvas):
                 zorder=4,
             )
 
+        self._draw_selection(selected)
+
         self.axes.set_title(title)
         self.axes.set_xlabel(S.HEATMAP_X_LABEL)
         self.axes.set_ylabel(S.HEATMAP_Y_LABEL)
         self.axes.set_xticks(_axis_ticks(nrows))
         self.axes.set_yticks(_axis_ticks(ncols))
         self.axes.tick_params(labelsize=_TICK_LABEL_SIZE)
+        self.draw_idle()
+
+    def _draw_selection(self, selected: Sequence[tuple[int, int, str]]) -> None:
+        """(Re)draw the selection ring layer; removes the previous one first."""
+        if self._selection_artist is not None:
+            self._selection_artist.remove()
+            self._selection_artist = None
+        if selected:
+            xs = [x for (x, _, _) in selected]
+            ys = [y for (_, y, _) in selected]
+            colors = [c for (_, _, c) in selected]
+            self._selection_artist = self.axes.scatter(
+                xs, ys,
+                s=SELECTED_MARKER_SIZE,
+                facecolors="none",
+                edgecolors=colors,
+                linewidths=2.5,
+                zorder=5,
+            )
+
+    def set_selected(self, selected: Sequence[tuple[int, int, str]]) -> None:
+        """Update only the selection marker layer and redraw.
+
+        Safe to call from within this canvas' own click handler — it never
+        destroys the canvas, and ``draw_idle`` defers the actual paint.
+        """
+        self._draw_selection(selected)
         self.draw_idle()
 
     def _on_click(self, event) -> None:

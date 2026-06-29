@@ -206,3 +206,43 @@ def test_render_grid_all_nan_shows_empty_text(qapp):
     )
     texts = [t.get_text() for t in canvas.axes.texts]
     assert any("Frequenzband" in t for t in texts)
+
+
+# --- selection marker layer -----------------------------------------------
+
+def _render_basic(canvas: HeatmapCanvas, selected=()):
+    grid = np.array([[1.0, 2.0], [3.0, 4.0]])
+    canvas.render_grid(
+        grid,
+        plate_name="Platte 1",
+        title="Platte 1",
+        colorscale="Viridis",
+        normalized=False,
+        hole_positions=[(0, 0), (1, 1)],
+        hole_values=[1.0, 4.0],
+        ref_value=None,
+        z_range=None,
+        selected=selected,
+    )
+
+
+def test_render_grid_without_selection_has_no_selection_artist(qapp):
+    canvas = HeatmapCanvas()
+    _render_basic(canvas)
+    assert canvas._selection_artist is None
+
+
+def test_render_grid_with_selection_draws_marker(qapp):
+    canvas = HeatmapCanvas()
+    _render_basic(canvas, selected=[(0, 0, "C0")])
+    assert canvas._selection_artist is not None
+
+
+def test_set_selected_updates_marker_layer(qapp):
+    canvas = HeatmapCanvas()
+    _render_basic(canvas)
+    canvas.set_selected([(1, 1, "C1")])
+    assert canvas._selection_artist is not None
+    # Clearing removes the marker layer again.
+    canvas.set_selected([])
+    assert canvas._selection_artist is None
