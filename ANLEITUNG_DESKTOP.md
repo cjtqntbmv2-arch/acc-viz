@@ -17,7 +17,9 @@ Frequenzband) und stellt ihn als Heatmap, Histogramm und PSD-Spektrum dar.
 3. **Einstellungen anpassen** — jede Änderung aktualisiert die Anzeige sofort
    (siehe Funktionsreferenz).
 4. **Spektrum ansehen** — in der Heatmap auf einen weißen Kreis (gemessener
-   Messpunkt) klicken; das PSD-Spektrum erscheint unterhalb der Platten.
+   Messpunkt) klicken; das PSD-Spektrum erscheint unterhalb der Platten. Mit
+   **Strg/Cmd-Klick** mehrere Messpunkte auswählen, die gemeinsam (farblich
+   markiert) im Spektrum überlagert werden.
 5. **Exportieren** — in der Werkzeugleiste **„CSV exportieren"** klicken und den
    Speicherort wählen.
 
