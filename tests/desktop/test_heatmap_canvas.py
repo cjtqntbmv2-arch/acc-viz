@@ -57,8 +57,9 @@ def test_resolve_hover_measured_point():
         hole_lookup={(0, 0): 1.5},
         ref_value=None,
         normalized=False,
+        axis="Y",
     )
-    assert text == "x=0, y=0\ng RMS=1.5000"
+    assert text == "Koordinaten x=0, y=0\ng RMS (Y) = 1.5000"
 
 
 def test_resolve_hover_interpolated_cell():
@@ -68,23 +69,27 @@ def test_resolve_hover_interpolated_cell():
         hole_lookup={},
         ref_value=None,
         normalized=False,
+        axis="Y",
     )
-    assert text == "x=1, y=1\nInterpoliert (g RMS)=4.0000"
+    assert text == "Koordinaten x=1, y=1\nInterpoliert g RMS (Y) = 4.0000"
 
 
 def test_resolve_hover_nan_gap_returns_none():
     # cell (1, 0) is NaN and not a measured hole.
     assert resolve_hover(
         1.0, 0.0, grid=_grid(), hole_lookup={}, ref_value=None, normalized=False,
+        axis="X",
     ) is None
 
 
 def test_resolve_hover_out_of_bounds_returns_none():
     assert resolve_hover(
         5.0, 0.0, grid=_grid(), hole_lookup={}, ref_value=None, normalized=False,
+        axis="X",
     ) is None
     assert resolve_hover(
         None, None, grid=_grid(), hole_lookup={}, ref_value=None, normalized=False,
+        axis="X",
     ) is None
 
 
@@ -96,8 +101,9 @@ def test_resolve_hover_reference_center_takes_priority():
         hole_lookup={(0, 0): 1.5},
         ref_value=0.8,
         normalized=False,
+        axis="Y",
     )
-    assert text == "Referenz (Mitte)\ng RMS=0.8000"
+    assert text == "Referenz (Mitte)\ng RMS (Y) = 0.8000"
 
 
 def test_resolve_hover_reference_none_falls_back_to_cell():
@@ -108,8 +114,9 @@ def test_resolve_hover_reference_none_falls_back_to_cell():
         hole_lookup={(0, 0): 1.5},
         ref_value=None,
         normalized=False,
+        axis="Y",
     )
-    assert text == "x=0, y=0\ng RMS=1.5000"
+    assert text == "Koordinaten x=0, y=0\ng RMS (Y) = 1.5000"
 
 
 def test_resolve_hover_normalized_label():
@@ -119,8 +126,9 @@ def test_resolve_hover_normalized_label():
         hole_lookup={},
         ref_value=None,
         normalized=True,
+        axis="Z",
     )
-    assert text == "x=1, y=1\nInterpoliert (Normalisiert)=4.0000"
+    assert text == "Koordinaten x=1, y=1\nInterpoliert Normalisiert (Z) = 4.0000"
 
 
 # --- canvas widget ---------------------------------------------------------
@@ -138,6 +146,7 @@ def test_heatmap_canvas_render_does_not_raise(qapp):
         hole_values=[1.0, 4.0],
         ref_value=None,
         z_range=(1.0, 4.0),
+        axis="X",
     )
 
 
@@ -147,7 +156,7 @@ def test_heatmap_canvas_click_emits_holeclicked(qapp):
     canvas.render_grid(
         grid, plate_name="Platte 1", title="t", colorscale="Viridis",
         normalized=False, hole_positions=[(0, 0)], hole_values=[1.0],
-        ref_value=None, z_range=None,
+        ref_value=None, z_range=None, axis="X",
     )
     received = []
     canvas.holeClicked.connect(lambda name, x, y: received.append((name, x, y)))
@@ -169,7 +178,7 @@ def test_heatmap_canvas_motion_shows_tooltip(qapp):
     canvas.render_grid(
         grid, plate_name="Platte 1", title="t", colorscale="Viridis",
         normalized=False, hole_positions=[(0, 0)], hole_values=[1.5],
-        ref_value=None, z_range=None,
+        ref_value=None, z_range=None, axis="Y",
     )
 
     class _Evt:
@@ -179,7 +188,7 @@ def test_heatmap_canvas_motion_shows_tooltip(qapp):
 
     # Should not raise and should resolve the measured-hole tooltip text.
     canvas._on_motion(_Evt())
-    assert canvas._last_hover == "x=0, y=0\ng RMS=1.5000"
+    assert canvas._last_hover == "Koordinaten x=0, y=0\ng RMS (Y) = 1.5000"
 
     class _OutEvt:
         inaxes = None
@@ -203,6 +212,7 @@ def test_render_grid_all_nan_shows_empty_text(qapp):
         hole_values=[],
         ref_value=None,
         z_range=None,
+        axis="X",
     )
     texts = [t.get_text() for t in canvas.axes.texts]
     assert any("Frequenzband" in t for t in texts)
@@ -223,6 +233,7 @@ def _render_basic(canvas: HeatmapCanvas, selected=()):
         ref_value=None,
         z_range=None,
         selected=selected,
+        axis="X",
     )
 
 

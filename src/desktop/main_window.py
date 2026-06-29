@@ -276,6 +276,7 @@ class MainWindow(QMainWindow):
             hole_values=values,
             ref_value=marker,
             z_range=analysis.z_range,
+            axis=settings.axis,
             selected=self._selected_for_plate(name),
         )
         heatmap.holeClicked.connect(self._on_hole_clicked)

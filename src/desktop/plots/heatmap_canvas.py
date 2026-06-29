@@ -83,6 +83,7 @@ def resolve_hover(
     hole_lookup: dict[tuple[int, int], float],
     ref_value: float | None,
     normalized: bool,
+    axis: str,
 ) -> str | None:
     """Tooltip text for a cursor data-coordinate over the heatmap, or ``None``.
 
@@ -99,7 +100,9 @@ def resolve_hover(
     if ref_value is not None:
         cx, cy = (nrows - 1) / 2, (ncols - 1) / 2
         if (xdata - cx) ** 2 + (ydata - cy) ** 2 < 0.25:  # within radius 0.5
-            return S.HEATMAP_HOVER_REFERENCE.format(label=label, value=ref_value)
+            return S.HEATMAP_HOVER_REFERENCE.format(
+                label=label, value=ref_value, axis=axis
+            )
 
     cell = nearest_cell(xdata, ydata, nrows, ncols)
     if cell is None:
@@ -109,14 +112,14 @@ def resolve_hover(
     # 2. Measured hole.
     if (x, y) in hole_lookup:
         return S.HEATMAP_HOVER_MEASURED.format(
-            x=x, y=y, label=label, value=hole_lookup[(x, y)]
+            x=x, y=y, label=label, value=hole_lookup[(x, y)], axis=axis
         )
 
     # 3. Interpolated cell (skip NaN gaps).
     value = grid[x, y]
     if np.isfinite(value):
         return S.HEATMAP_HOVER_INTERPOLATED.format(
-            x=x, y=y, label=label, value=float(value)
+            x=x, y=y, label=label, value=float(value), axis=axis
         )
     return None
 
@@ -140,6 +143,7 @@ class HeatmapCanvas(ScrollPassthroughCanvas):
         self._hole_lookup: dict[tuple[int, int], float] = {}
         self._ref_value: float | None = None
         self._normalized = False
+        self._axis = ""
         self._last_hover: str | None = None
         self.mpl_connect("motion_notify_event", self._on_motion)
         self._selection_artist = None
@@ -156,6 +160,7 @@ class HeatmapCanvas(ScrollPassthroughCanvas):
         hole_values: list[float],
         ref_value: float | None,
         z_range: tuple[float, float] | None,
+        axis: str,
         selected: Sequence[tuple[int, int, str]] = (),
     ) -> None:
         """Draw the interpolated grid with hole markers and optional reference star."""
@@ -165,6 +170,7 @@ class HeatmapCanvas(ScrollPassthroughCanvas):
         self._hole_lookup = dict(zip(hole_positions, hole_values))
         self._ref_value = ref_value
         self._normalized = normalized
+        self._axis = axis
         nrows, ncols = grid.shape
 
         if not np.isfinite(grid).any():
@@ -296,6 +302,7 @@ class HeatmapCanvas(ScrollPassthroughCanvas):
             hole_lookup=self._hole_lookup,
             ref_value=self._ref_value,
             normalized=self._normalized,
+            axis=self._axis,
         )
         if text == self._last_hover:
             return

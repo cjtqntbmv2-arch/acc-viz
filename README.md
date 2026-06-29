@@ -3,7 +3,7 @@
 # acc_visualisation
 
 Auswertung und Visualisierung von Beschleunigungs-PSD-Messungen an
-Plattenbohrungen: Band-RMS-Heatmaps pro Platte, PSD-Spektrum-Drilldown,
+Messpunkten auf Platten: Band-RMS-Heatmaps pro Platte, PSD-Spektrum-Drilldown,
 optionale Normalisierung und Interpolation, CSV-Export.
 
 Details zu Input-Format, Funktionsweise und Output: [BESCHREIBUNG.md](BESCHREIBUNG.md)

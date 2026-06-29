@@ -38,23 +38,25 @@ REF_METRIC_HEADER = "{name} — Referenz"
 COLORBAR_NORMALIZED = "Normalisiert"
 COLORBAR_ABSOLUTE = "g RMS"
 
-SPECTRUM_TITLE = "{name} — Bohrung ({x}, {y}) · Achse {axis}"
-SPECTRUM_TITLE_MULTI = "Spektrum · Achse {axis} · {n} Bohrungen"
+SPECTRUM_TITLE = "{name} — Messpunkt ({x}, {y}) · Achse {axis}"
+SPECTRUM_TITLE_MULTI = "Spektrum · Achse {axis} · {n} Messpunkte"
 SPECTRUM_X_LABEL = "Frequenz (Hz)"
 SPECTRUM_Y_LABEL_TMPL = "PSD {axis} (g²/Hz)"
 SPECTRUM_TRACE_POINT_TMPL = "{plate} — ({x}, {y})"
 SPECTRUM_TRACE_REF = "Referenz"
 SPECTRUM_Y_LABEL_RSS = "PSD (g²/Hz)"
 
-HEATMAP_X_LABEL = "x-Bohrung"
-HEATMAP_Y_LABEL = "y-Bohrung"
+HEATMAP_X_LABEL = "x-Messpunkt"
+HEATMAP_Y_LABEL = "y-Messpunkt"
 
-HEATMAP_HOVER_MEASURED = "x={x}, y={y}\n{label}={value:.4f}"
-HEATMAP_HOVER_INTERPOLATED = "x={x}, y={y}\nInterpoliert ({label})={value:.4f}"
-HEATMAP_HOVER_REFERENCE = "Referenz (Mitte)\n{label}={value:.4f}"
+HEATMAP_HOVER_MEASURED = "Koordinaten x={x}, y={y}\n{label} ({axis}) = {value:.4f}"
+HEATMAP_HOVER_INTERPOLATED = (
+    "Koordinaten x={x}, y={y}\nInterpoliert {label} ({axis}) = {value:.4f}"
+)
+HEATMAP_HOVER_REFERENCE = "Referenz (Mitte)\n{label} ({axis}) = {value:.4f}"
 
 HISTOGRAM_X_LABEL_TMPL = "Beschleunigung ({label})"
-HISTOGRAM_Y_LABEL = "Anzahl Löcher"
+HISTOGRAM_Y_LABEL = "Anzahl Messpunkte"
 HISTOGRAM_BINS = "Histogramm-Bins"
 HISTOGRAM_EMPTY = "Keine Daten für Histogramm."
 HEATMAP_EMPTY = "Keine Messwerte im gewählten Frequenzband."
@@ -64,10 +66,10 @@ HISTOGRAM_STAT_MEAN = "µ = {value:.3g}"
 HISTOGRAM_STAT_MEDIAN = "Median = {value:.3g}"
 HISTOGRAM_STAT_SIGMA = "±1σ ({value:.3g})"
 
-WARN_NO_DATA_FOR_HOLE = "{name}: Keine Messdaten für Bohrung ({x}, {y})."
+WARN_NO_DATA_FOR_HOLE = "{name}: Keine Messdaten für Messpunkt ({x}, {y})."
 
 HELP_FOLDER_PLATE = (
-    "Ordner mit CSV-Messungen pro Bohrung: Dateinamen im Format "
+    "Ordner mit CSV-Messungen pro Messpunkt: Dateinamen im Format "
     "x{N}-y{M}.csv, Spalten: Frequenz_Hz, PSD_X_g2Hz, PSD_Y_g2Hz, "
     "PSD_Z_g2Hz. Optional eine Referenz.csv für die Referenzmessung."
 )
@@ -81,7 +83,7 @@ HELP_AXIS = (
     "richtungsunabhängige Gesamtbelastung."
 )
 HELP_NORMALIZE = (
-    "Teilt jeden Bohrungs-RMS durch den Referenz-RMS derselben Platte. "
+    "Teilt jeden Messpunkt-RMS durch den Referenz-RMS derselben Platte. "
     "Ergebnis dimensionslos, Referenz = 1,0. Erfordert Referenz.csv."
 )
 HELP_INTERPOLATE = (
@@ -101,7 +103,7 @@ HELP_INTERP_METHOD = (
 
 HELP_HISTOGRAM_BINS = (
     "Anzahl der Bins im Histogramm. Wird automatisch auf die "
-    "Anzahl gemessener Löcher reduziert, wenn diese kleiner ist."
+    "Anzahl gemessener Messpunkte reduziert, wenn diese kleiner ist."
 )
 HELP_SHARED_SCALE = (
     "Wenn aktiv, nutzen alle Heatmaps denselben zmin/zmax-Bereich — "
@@ -124,12 +126,12 @@ HELP_REF_METRIC = (
     "Frequenzband. Gelber Stern in der Heatmap markiert diese Stelle."
 )
 HELP_CSV_EXPORT = (
-    "Pro Bohrung eine Zeile: absoluter und normalisierter Band-RMS "
+    "Pro Messpunkt eine Zeile: absoluter und normalisierter Band-RMS "
     "für aktuell gewähltes Frequenzband und Achse. UTF-8 mit BOM, "
     "Semikolon-getrennt (Excel-kompatibel)."
 )
 CAPTION_HEATMAP_LEGEND = (
-    "Weiße Kreise = gemessene Bohrungen (anklickbar für Spektrum). "
+    "Weiße Kreise = gemessene Messpunkte (anklickbar für Spektrum). "
     "Gelber Stern = Referenzwert in Plattenmitte."
 )
 

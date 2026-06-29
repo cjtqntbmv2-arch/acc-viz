@@ -1,7 +1,7 @@
 # Beschleunigungs-Visualisierung
 
 Desktop-App (PySide6) zur Auswertung und Visualisierung von
-Beschleunigungs-PSD-Messungen an Plattenbohrungen.
+Beschleunigungs-PSD-Messungen an Messpunkten auf Platten.
 
 ## Input
 
