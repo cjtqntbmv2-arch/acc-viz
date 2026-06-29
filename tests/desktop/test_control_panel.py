@@ -105,3 +105,11 @@ def test_restore_folder_texts_emits_no_signal(qapp):
     panel.restore_folder_texts(["/x", "/y"])
     assert panel.folder_texts() == ["/x", "/y"]
     assert fired == []
+
+
+def test_frequency_spinboxes_commit_on_enter_not_per_keystroke(qapp):
+    panel = ControlPanel()
+    # keyboardTracking aus => valueChanged feuert erst bei Enter/Fokusverlust,
+    # nicht ab der ersten getippten Ziffer.
+    assert panel._f_min.keyboardTracking() is False
+    assert panel._f_max.keyboardTracking() is False

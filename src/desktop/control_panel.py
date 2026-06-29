@@ -90,6 +90,9 @@ class ControlPanel(QWidget):
         self._f_max.setRange(0, 25000)
         self._f_max.setSingleStep(100)
         self._f_max.setValue(25000)
+        # Erst bei Enter / Fokusverlust / Step-Pfeil rechnen, nicht pro Tastenanschlag.
+        self._f_min.setKeyboardTracking(False)
+        self._f_max.setKeyboardTracking(False)
         self._f_min.valueChanged.connect(self._on_f_min_changed)
         self._f_max.valueChanged.connect(self._on_f_max_changed)
         band = QHBoxLayout()
