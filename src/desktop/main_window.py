@@ -36,7 +36,7 @@ from src.desktop.load_progress import load_with_progress
 from src.desktop.manual_dialog import ManualDialog
 from src.desktop.plots.heatmap_canvas import HeatmapCanvas
 from src.desktop.plots.histogram_canvas import HistogramCanvas
-from src.desktop.plots.spectrum_canvas import SpectrumCanvas
+from src.desktop.plots.spectrum_canvas import SpectrumCanvas, SpectrumPoint
 from src.core import strings as S
 
 # Settings fields that change the computed result (vs. pure display fields like
@@ -306,12 +306,11 @@ class MainWindow(QMainWindow):
 
         canvas = SpectrumCanvas()
         canvas.render_spectrum(
-            plate_name=name,
-            x_hole=x_hole,
-            y_hole=y_hole,
+            [SpectrumPoint(
+                plate_name=name, x_hole=x_hole, y_hole=y_hole,
+                hole_df=hole_data[(x_hole, y_hole)], ref_df=ref_df,
+            )],
             axis=self._settings.axis,
-            hole_df=hole_data[(x_hole, y_hole)],
-            ref_df=ref_df,
             f_min=self._settings.f_min,
             f_max=self._settings.f_max,
         )
