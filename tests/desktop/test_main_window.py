@@ -141,3 +141,74 @@ def test_histogram_shown_by_default(qapp, tmp_path):
     content = win._content_scroll.widget()
     assert content is not None  # widget() is QWidget | None
     assert len(content.findChildren(HistogramCanvas)) >= 1
+
+
+# --- multi-select tests (Task 6) ---
+
+def _click(win, name, x, y, *, ctrl=False):
+    """Simulate a hole click with optional Ctrl modifier via monkeypatching."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QApplication
+
+    mods = (
+        Qt.KeyboardModifier.ControlModifier if ctrl
+        else Qt.KeyboardModifier.NoModifier
+    )
+    orig = QApplication.keyboardModifiers
+    QApplication.keyboardModifiers = staticmethod(lambda: mods)
+    try:
+        win._on_hole_clicked(name, x, y)
+    finally:
+        QApplication.keyboardModifiers = orig
+
+
+def test_plain_click_selects_single_point(qapp, tmp_path):
+    from tests.core.conftest import make_plate_folder
+
+    folder = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
+    win = MainWindow()
+    win.control_panel.set_folder(0, str(folder))
+    _click(win, "Platte 1", 0, 0)
+    assert win._selected_points == [("Platte 1", 0, 0)]
+    _click(win, "Platte 1", 1, 1)  # plain click replaces
+    assert win._selected_points == [("Platte 1", 1, 1)]
+
+
+def test_ctrl_click_accumulates_and_toggles(qapp, tmp_path):
+    from tests.core.conftest import make_plate_folder
+
+    folder = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
+    win = MainWindow()
+    win.control_panel.set_folder(0, str(folder))
+    _click(win, "Platte 1", 0, 0)
+    _click(win, "Platte 1", 1, 1, ctrl=True)
+    assert win._selected_points == [("Platte 1", 0, 0), ("Platte 1", 1, 1)]
+    _click(win, "Platte 1", 0, 0, ctrl=True)  # toggle off
+    assert win._selected_points == [("Platte 1", 1, 1)]
+
+
+def test_selection_survives_settings_change(qapp, tmp_path):
+    from tests.core.conftest import make_plate_folder
+
+    folder = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
+    win = MainWindow()
+    win.control_panel.set_folder(0, str(folder))
+    _click(win, "Platte 1", 0, 0)
+    win.control_panel.set_axis("RSS")  # triggers _refresh -> _render
+    assert win._selected_points == [("Platte 1", 0, 0)]
+    # Spektrum muss nach dem Re-Render real neu gezeichnet sein (nicht nur != None):
+    # RSS + Einzelpunkt, ref_df None => genau eine Summenlinie.
+    assert win._spectrum_canvas is not None
+    assert len(win._spectrum_canvas.axes.get_lines()) >= 1
+
+
+def test_folder_change_clears_selection(qapp, tmp_path):
+    from tests.core.conftest import make_plate_folder
+
+    folder1 = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
+    folder2 = make_plate_folder(tmp_path / "p2", {(0, 0): 2e-3, (1, 1): 5e-3})
+    win = MainWindow()
+    win.control_panel.set_folder(0, str(folder1))
+    _click(win, "Platte 1", 0, 0)
+    win.control_panel.set_folder(0, str(folder2))  # new folder -> reload
+    assert win._selected_points == []

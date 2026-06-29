@@ -100,6 +100,7 @@ class MainWindow(QMainWindow):
         self._ref_labels: dict[str, QLabel] = {}
         self._spectrum_canvas: SpectrumCanvas | None = None
         self._spectrum_layout: QVBoxLayout | None = None
+        self._selected_points: list[tuple[str, int, int]] = []
 
         self._set_placeholder(S.WAITING_FOR_FOLDER)
         self._control_panel.settingsChanged.connect(self._refresh)
@@ -144,6 +145,7 @@ class MainWindow(QMainWindow):
                 self.statusBar().showMessage(S.LOAD_CANCELLED, 6000)
                 return
             self._last_good_folder_texts = self._control_panel.folder_texts()
+            self._selected_points = []
             load = loaded
             self._load = load
             self.statusBar().clearMessage()
@@ -182,6 +184,7 @@ class MainWindow(QMainWindow):
         self._ref_labels = {}
         self._spectrum_canvas = None
         self._spectrum_layout = None
+        self._selected_points = []
         self._export_action.setEnabled(False)
 
     def _export(self) -> None:
@@ -228,6 +231,8 @@ class MainWindow(QMainWindow):
         content_layout.addWidget(plate_splitter)
         content_layout.addWidget(spectrum_container)
         self._content_scroll.setWidget(content)
+        if self._selected_points:
+            self._draw_spectrum_from_selection()
 
     def _build_plate_column(
         self,
@@ -271,6 +276,7 @@ class MainWindow(QMainWindow):
             hole_values=values,
             ref_value=marker,
             z_range=analysis.z_range,
+            selected=self._selected_for_plate(name),
         )
         heatmap.holeClicked.connect(self._on_hole_clicked)
         self._heatmaps[name] = heatmap
@@ -290,36 +296,98 @@ class MainWindow(QMainWindow):
 
         return column
 
+    # --- color / selection helpers ---
+
+    @staticmethod
+    def _color_for_index(i: int) -> str:
+        # matplotlib-Default-Zyklus; koppelt Spektrum-Linie und Heatmap-Marker.
+        return f"C{i % 10}"
+
+    def _selected_for_plate(self, name: str) -> list[tuple[int, int, str]]:
+        return [
+            (x, y, self._color_for_index(i))
+            for i, (p, x, y) in enumerate(self._selected_points)
+            if p == name
+        ]
+
     def _on_hole_clicked(self, name: str, x_hole: int, y_hole: int) -> None:
-        """Render the per-hole spectrum when a measured hole is clicked."""
+        """Update the selected-hole set and redraw spectrum + heatmap markers.
+
+        Plain click replaces the selection; Ctrl/Cmd+click toggles a point
+        (Qt maps Cmd to ControlModifier on macOS).
+        """
+        from PySide6.QtWidgets import QApplication
+
         if self._load is None or self._settings is None:
             return
         entry = self._load.plates.get(name)
         if entry is None:
             return
-        hole_data, ref_df = entry
-        if (x_hole, y_hole) not in hole_data:
-            self.statusBar().showMessage(
-                S.WARN_NO_DATA_FOR_HOLE.format(name=name, x=x_hole, y=y_hole), 8000
-            )
-            return
+        hole_data, _ref_df = entry
+        point = (name, x_hole, y_hole)
+        additive = bool(
+            QApplication.keyboardModifiers() & Qt.KeyboardModifier.ControlModifier
+        )
 
+        if additive and point in self._selected_points:
+            self._selected_points.remove(point)  # toggle off — no data check needed
+        else:
+            if (x_hole, y_hole) not in hole_data:
+                # Klick auf leere/Gap-Zelle: bestehende Auswahl bewusst NICHT
+                # verwerfen (Fehlklick soll eine gute Auswahl nicht zerstören).
+                self.statusBar().showMessage(
+                    S.WARN_NO_DATA_FOR_HOLE.format(name=name, x=x_hole, y=y_hole), 8000
+                )
+                return
+            if additive:
+                self._selected_points.append(point)
+            else:
+                self._selected_points = [point]
+
+        # Marker auf allen Heatmaps aktualisieren (Farb-Indices verschieben sich
+        # beim Entfernen) — inkrementell, ohne den Klick-Sender zu zerstören.
+        for plate_name, heatmap in self._heatmaps.items():
+            heatmap.set_selected(self._selected_for_plate(plate_name))
+        self._draw_spectrum_from_selection()
+
+    def _draw_spectrum_from_selection(self) -> None:
+        """Render all selected holes overlaid into one spectrum canvas."""
+        if self._spectrum_layout is None or self._load is None or self._settings is None:
+            return
+        if not self._selected_points:
+            self._clear_spectrum()
+            return
+        points: list[SpectrumPoint] = []
+        for i, (name, x, y) in enumerate(self._selected_points):
+            entry = self._load.plates.get(name)
+            if entry is None:
+                continue
+            hole_data, ref_df = entry
+            if (x, y) not in hole_data:
+                continue
+            points.append(
+                SpectrumPoint(
+                    plate_name=name, x_hole=x, y_hole=y,
+                    hole_df=hole_data[(x, y)], ref_df=ref_df,
+                    color=self._color_for_index(i),
+                )
+            )
+        if not points:
+            self._clear_spectrum()
+            return
         canvas = SpectrumCanvas()
         canvas.render_spectrum(
-            [SpectrumPoint(
-                plate_name=name, x_hole=x_hole, y_hole=y_hole,
-                hole_df=hole_data[(x_hole, y_hole)], ref_df=ref_df,
-            )],
+            points,
             axis=self._settings.axis,
             f_min=self._settings.f_min,
             f_max=self._settings.f_max,
         )
         self._set_spectrum_canvas(canvas)
 
-    def _set_spectrum_canvas(self, canvas: SpectrumCanvas) -> None:
+    def _clear_spectrum(self) -> None:
+        """Drop any spectrum content (e.g. when the selection becomes empty)."""
         if self._spectrum_layout is None:
             return
-        # Clear existing spectrum content.
         while self._spectrum_layout.count():
             item = self._spectrum_layout.takeAt(0)
             if item is None:
@@ -327,6 +395,12 @@ class MainWindow(QMainWindow):
             widget = item.widget()
             if widget is not None:
                 widget.deleteLater()
+        self._spectrum_canvas = None
+
+    def _set_spectrum_canvas(self, canvas: SpectrumCanvas) -> None:
+        self._clear_spectrum()
+        if self._spectrum_layout is None:
+            return
         self._spectrum_layout.addWidget(canvas)
         self._spectrum_canvas = canvas
 
