@@ -276,16 +276,17 @@ class MainWindow(QMainWindow):
         self._heatmaps[name] = heatmap
         layout.addWidget(heatmap, stretch=3)
 
-        histogram = HistogramCanvas()
-        histogram.render_values(
-            sparse_grid.ravel(),
-            bins=settings.histogram_bins,
-            normalized=settings.normalize,
-            ref_value=marker,
-            x_range=analysis.hist_range if settings.shared_scale else None,
-            show_stats=settings.histogram_stats,
-        )
-        layout.addWidget(histogram, stretch=2)
+        if settings.show_histogram:
+            histogram = HistogramCanvas()
+            histogram.render_values(
+                sparse_grid.ravel(),
+                bins=settings.histogram_bins,
+                normalized=settings.normalize,
+                ref_value=marker,
+                x_range=analysis.hist_range if settings.shared_scale else None,
+                show_stats=settings.histogram_stats,
+            )
+            layout.addWidget(histogram, stretch=2)
 
         return column
 

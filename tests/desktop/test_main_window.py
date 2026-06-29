@@ -115,3 +115,29 @@ def test_refresh_cancel_then_repick_reloads(qapp, tmp_path, monkeypatch):
     win.control_panel.set_folder(1, str(f2))
     assert win._analysis is not first_analysis
     assert "Platte 2" in win._analysis.grids
+
+
+def test_histogram_hidden_when_show_histogram_false(qapp, tmp_path):
+    from src.desktop.plots.histogram_canvas import HistogramCanvas
+    from tests.core.conftest import make_plate_folder
+
+    folder = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
+    win = MainWindow()
+    win.control_panel._show_histogram.setChecked(False)  # triggers settingsChanged
+    win.control_panel.set_folder(0, str(folder))          # triggers _refresh + render
+    content = win._content_scroll.widget()
+    assert content is not None  # widget() is QWidget | None
+    histograms = content.findChildren(HistogramCanvas)
+    assert histograms == []
+
+
+def test_histogram_shown_by_default(qapp, tmp_path):
+    from src.desktop.plots.histogram_canvas import HistogramCanvas
+    from tests.core.conftest import make_plate_folder
+
+    folder = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
+    win = MainWindow()
+    win.control_panel.set_folder(0, str(folder))
+    content = win._content_scroll.widget()
+    assert content is not None  # widget() is QWidget | None
+    assert len(content.findChildren(HistogramCanvas)) >= 1
