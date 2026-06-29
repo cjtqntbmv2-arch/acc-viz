@@ -13,6 +13,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from version_reader import binary_stem
+
 
 ROOT = Path(__file__).resolve().parent.parent
 SPEC = ROOT / "packaging" / "acc_viz.spec"
@@ -27,11 +29,12 @@ def _run(cmd: list[str], **kw) -> None:
 
 
 def _binary_path() -> Path:
+    stem = binary_stem()  # acc_viz-X.Y.Z, matching the spec's EXE name
     if sys.platform == "darwin":
-        return ROOT / "dist" / "acc_viz.app" / "Contents" / "MacOS" / "acc_viz"
+        return ROOT / "dist" / "acc_viz.app" / "Contents" / "MacOS" / stem
     if sys.platform.startswith("win"):
-        return DIST / "acc_viz.exe"
-    return DIST / "acc_viz"
+        return DIST / f"{stem}.exe"
+    return DIST / stem
 
 
 def _smoke_test() -> None:

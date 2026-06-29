@@ -20,6 +20,12 @@ pandas_hidden = collect_submodules("pandas")
 
 project_root = Path(SPECPATH).parent.resolve()
 
+# Stamp the current pyproject version into the executable name (acc_viz-X.Y.Z).
+sys.path.insert(0, SPECPATH)
+from version_reader import binary_stem
+
+exe_name = binary_stem()
+
 added_files = [
     (str(project_root / "desktop_main.py"), "."),
     (str(project_root / "src"), "src"),
@@ -67,7 +73,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name="acc_viz",
+    name=exe_name,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
