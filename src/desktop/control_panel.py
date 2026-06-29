@@ -134,6 +134,13 @@ class ControlPanel(QWidget):
         )
         form.addRow(S.INTERP_METHOD, self._method_container)
 
+        # --- histogram visibility ---
+        self._show_histogram = QCheckBox(S.SHOW_HISTOGRAM)
+        self._show_histogram.setChecked(True)
+        self._show_histogram.setToolTip(S.HELP_SHOW_HISTOGRAM)
+        self._show_histogram.toggled.connect(self._on_show_histogram_toggled)
+        root.addWidget(self._show_histogram)
+
         # --- histogram bins ---
         self._bins = QSpinBox()
         self._bins.setRange(5, 50)
@@ -247,6 +254,12 @@ class ControlPanel(QWidget):
         self._method_container.setEnabled(checked)
         self.settingsChanged.emit()
 
+    def _on_show_histogram_toggled(self, checked: bool) -> None:
+        # Bins/Statistik sind sinnlos, wenn das Histogramm aus ist — ausgrauen.
+        self._bins.setEnabled(checked)
+        self._histogram_stats.setEnabled(checked)
+        self.settingsChanged.emit()
+
     # --- programmatic setters (also used by tests) ---
 
     def set_folder(self, idx: int, path: str) -> None:
@@ -307,4 +320,5 @@ class ControlPanel(QWidget):
             histogram_bins=int(self._bins.value()),
             histogram_stats=self._histogram_stats.isChecked(),
             interp_method=interp_method,
+            show_histogram=self._show_histogram.isChecked(),
         )

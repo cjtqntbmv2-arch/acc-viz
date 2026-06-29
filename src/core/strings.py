@@ -60,6 +60,7 @@ HISTOGRAM_BINS = "Histogramm-Bins"
 HISTOGRAM_EMPTY = "Keine Daten für Histogramm."
 HEATMAP_EMPTY = "Keine Messwerte im gewählten Frequenzband."
 HISTOGRAM_STATS = "Statistik anzeigen"
+SHOW_HISTOGRAM = "Histogramm anzeigen"
 HISTOGRAM_STAT_MEAN = "µ = {value:.3g}"
 HISTOGRAM_STAT_MEDIAN = "Median = {value:.3g}"
 HISTOGRAM_STAT_SIGMA = "±1σ ({value:.3g})"
@@ -110,6 +111,10 @@ HELP_SHARED_SCALE = (
 HELP_HISTOGRAM_STATS = (
     "Blendet Mittelwert, Median und ±1σ als vertikale Linien mit "
     "Zahlenwerten im Histogramm ein."
+)
+HELP_SHOW_HISTOGRAM = (
+    "Blendet das Histogramm unter jeder Heatmap ein oder aus. "
+    "Reine Anzeige — ändert die Berechnung nicht."
 )
 HELP_COLORSCALE = (
     "Farbpalette der Heatmap. Viridis/Cividis sind perzeptuell "

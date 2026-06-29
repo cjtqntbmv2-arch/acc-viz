@@ -44,6 +44,8 @@ class Settings:
         histogram_stats: Whether to overlay mean, median, and ±1σ marker lines
             on the per-plate histograms. Pure display flag — does not affect the
             computed analysis.
+        show_histogram: Whether to show the per-plate histogram below each
+            heatmap. Pure display flag — does not affect the computed analysis.
     """
 
     folders: tuple[tuple[str, str], ...]  # (label, raw path)
@@ -57,6 +59,7 @@ class Settings:
     histogram_bins: int = 20
     histogram_stats: bool = True
     interp_method: InterpolationMethod = "linear"
+    show_histogram: bool = True
 
 
 def normalize_path(raw: str) -> str:

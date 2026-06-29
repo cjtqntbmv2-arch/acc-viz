@@ -113,3 +113,24 @@ def test_frequency_spinboxes_commit_on_enter_not_per_keystroke(qapp):
     # nicht ab der ersten getippten Ziffer.
     assert panel._f_min.keyboardTracking() is False
     assert panel._f_max.keyboardTracking() is False
+
+
+def test_show_histogram_default_true(qapp):
+    panel = ControlPanel()
+    assert panel.current_settings().show_histogram is True
+
+
+def test_show_histogram_toggle_reflected_in_settings(qapp):
+    panel = ControlPanel()
+    panel._show_histogram.setChecked(False)
+    assert panel.current_settings().show_histogram is False
+
+
+def test_hiding_histogram_disables_bins_and_stats(qapp):
+    panel = ControlPanel()
+    panel._show_histogram.setChecked(False)
+    assert panel._bins.isEnabled() is False
+    assert panel._histogram_stats.isEnabled() is False
+    panel._show_histogram.setChecked(True)
+    assert panel._bins.isEnabled() is True
+    assert panel._histogram_stats.isEnabled() is True
