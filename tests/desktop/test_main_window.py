@@ -212,3 +212,36 @@ def test_folder_change_clears_selection(qapp, tmp_path):
     _click(win, "Platte 1", 0, 0)
     win.control_panel.set_folder(0, str(folder2))  # new folder -> reload
     assert win._selected_points == []
+
+
+def test_heatmap_marker_color_matches_spectrum_line(qapp, tmp_path):
+    # Pins the color-coupling invariant: each selected point's heatmap ring
+    # colour equals its spectrum-line colour (both from the same global index),
+    # cross-plate. Holds by construction today; this guards future refactors of
+    # _color_for_index / _selected_for_plate.
+    import numpy as np
+    from matplotlib.colors import to_rgba
+
+    from tests.core.conftest import make_plate_folder
+
+    f1 = make_plate_folder(tmp_path / "p1", {(0, 0): 1e-3, (1, 1): 4e-3})
+    f2 = make_plate_folder(tmp_path / "p2", {(0, 0): 2e-3, (1, 1): 5e-3})
+    win = MainWindow()
+    win.control_panel.set_folder(0, str(f1))
+    win.control_panel.set_folder(1, str(f2))
+    _click(win, "Platte 1", 0, 0)             # global index 0
+    _click(win, "Platte 2", 0, 0, ctrl=True)  # global index 1
+
+    assert win._spectrum_canvas is not None
+    lines = win._spectrum_canvas.axes.get_lines()
+    assert len(lines) == 2  # one line per point, no ref (multi-selection)
+    art1 = win._heatmaps["Platte 1"]._selection_artist
+    art2 = win._heatmaps["Platte 2"]._selection_artist
+    assert art1 is not None and art2 is not None
+    ring1 = np.asarray(art1.get_edgecolor())[0]
+    ring2 = np.asarray(art2.get_edgecolor())[0]
+    # marker colour == its own spectrum line colour (the coupling), per point
+    assert np.allclose(ring1, to_rgba(lines[0].get_color()))
+    assert np.allclose(ring2, to_rgba(lines[1].get_color()))
+    # and the two points are visually distinct
+    assert not np.allclose(ring1, ring2)
